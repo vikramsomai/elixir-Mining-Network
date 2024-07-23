@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="Home"
+        android:id="@+id/navHome"
+        android:icon="@drawable/home"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <item android:title="Mining"
+        android:id="@+id/navMine"
+        android:icon="@drawable/dashboard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <item android:title="Referral"
+        android:id="@+id/referral"
+        android:icon="@drawable/referral"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+    <item android:title="Profile"
+        android:id="@+id/navProfile"
+
+        android:icon="@drawable/user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+</menu>
