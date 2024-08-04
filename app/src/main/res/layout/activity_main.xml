@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context="com.somai.elixirMiningNetwork.MainActivity">
 
     <FrameLayout
         android:id="@+id/framelayout"
@@ -16,8 +16,12 @@
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomview"
+        app:itemIconSize="25dp"
+
+        app:itemBackground="@color/white"
+        app:itemActiveIndicatorStyle="@drawable/rounded__card_shape"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="70dp"
         app:menu="@menu/bottom_nav_menu"/>
 
 </LinearLayout>

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "187179770639",
+    "firebase_url": "https://elixir-mining-app-default-rtdb.firebaseio.com",
+    "project_id": "elixir-mining-app",
+    "storage_bucket": "elixir-mining-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:187179770639:android:23012cbb1fde31ad0f547a",
+        "android_client_info": {
+          "package_name": "com.somai.elixirMiningNetwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBS5JWWg5Va_EyVHwhqJjYLLStnuh9HEpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

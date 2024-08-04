@@ -8,22 +8,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         />
+    <item android:title="Wallet"
+        android:id="@+id/navwallet"
+        android:icon="@drawable/wallet_nav"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        />
     <item android:title="Mining"
         android:id="@+id/navMine"
-        android:icon="@drawable/dashboard"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:icon="@drawable/mining"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         />
     <item android:title="Referral"
         android:id="@+id/referral"
-        android:icon="@drawable/referral"
+        android:icon="@drawable/referral_user"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         />
     <item android:title="Profile"
         android:id="@+id/navProfile"
 
-        android:icon="@drawable/user"
+        android:icon="@drawable/user_user"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         />

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".WalletFragment">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+<com.google.android.material.card.MaterialCardView
+    android:layout_width="match_parent"
+    android:layout_marginTop="20dp"
+    android:layout_marginLeft="20dp"
+    android:layout_marginRight="20dp"
+    android:backgroundTint="#000"
+    android:layout_height="150dp">
+    <TextView
+        android:layout_width="wrap_content"
+        android:text="Balance"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="20dp"
+        android:textSize="20dp"
+        android:textStyle="bold"
+        android:backgroundTint="#000"
+        android:textColor="#fff"
+
+        android:layout_height="wrap_content"/>
+</com.google.android.material.card.MaterialCardView>
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_margin="20dp"
+    android:layout_gravity="center"
+    android:gravity="center"
+    android:layout_height="100dp">
+    <ImageView
+        android:layout_width="60dp"
+        android:layout_marginRight="150dp"
+        android:src="@drawable/right_arrow"
+        android:layout_height="60dp"/>
+    <ImageView
+        android:layout_width="60dp"
+        android:layout_marginLeft="100dp"
+        android:src="@drawable/left_arrow"
+        android:layout_height="60dp"/>
+</RelativeLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.somai.elixirMiningNetwork" />
+                  <option name="mobileSdkAppId" value="1:187179770639:android:23012cbb1fde31ad0f547a" />
+                  <option name="projectId" value="elixir-mining-app" />
+                  <option name="projectNumber" value="187179770639" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

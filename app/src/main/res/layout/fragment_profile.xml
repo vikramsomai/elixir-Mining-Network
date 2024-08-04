@@ -2,26 +2,25 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:background="#f3f5f4"
     android:layout_height="match_parent"
-    tools:context=".ProfileFragment">
+    tools:context="com.somai.elixirMiningNetwork.ProfileFragment">
     <ScrollView
+        android:background="#f3f5f4"
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         tools:context="com.appsnipp.mysettings.SettingsActivity"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/contentBodyColor">
+        android:layout_height="match_parent">
 
         <LinearLayout
+            android:background="#f3f5f4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="30dp">
+            android:padding="20dp">
 
-            <TextView
-                style="@style/viewParent.headerText"
-                android:text="Settings" />
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -31,9 +30,8 @@
                     android:id="@+id/profileCircleImageView"
                     android:layout_width="60dp"
                     android:layout_height="60dp"
-                    app:civ_border_width="2dp"
-                    app:civ_border_color="@color/imageBorderColor"
-                    android:src="@drawable/girl"
+                    app:civ_border_width="1dp"
+                    android:src="@drawable/profileuser"
                     android:layout_marginTop="15dp"
                     android:layout_marginRight="10dp"/>
 
@@ -72,26 +70,35 @@
                 android:text="Profile"/>
 
             <TextView
+                android:id="@+id/editProfile"
                 style="@style/viewParent.headerText.settingsTextIcon"
                 android:drawableLeft="@drawable/ic_edit_profile"
                 android:text="Edit Profile" />
 
-            <TextView
-                style="@style/viewParent.headerText.settingsTextIcon"
-                android:drawableLeft="@drawable/ic_edit_password"
-                android:layout_marginTop="10dp"
-                android:text="Change Password" />
+<!--            <TextView-->
+<!--                style="@style/viewParent.headerText.settingsTextIcon"-->
+<!--                android:drawableLeft="@drawable/ic_edit_password"-->
+<!--                android:layout_marginTop="10dp"-->
+<!--                android:text="Change Password" />-->
 
+<!--            <TextView-->
+<!--                style="@style/viewParent.headerText.settingsMiniTitle"-->
+<!--                android:text="Notifications"/>-->
+
+<!--            <Switch-->
+<!--                style="@style/settingsText"-->
+<!--                android:checked="true"-->
+<!--                android:drawableLeft="@drawable/ic_notifications"-->
+<!--                android:text="Notifications" />-->
             <TextView
                 style="@style/viewParent.headerText.settingsMiniTitle"
-                android:text="Notifications"/>
+                android:text="Utlitiy"/>
 
-            <Switch
-                style="@style/settingsText"
-                android:checked="true"
-                android:drawableLeft="@drawable/ic_notifications"
-                android:text="Notifications" />
+            <TextView
 
+                style="@style/viewParent.headerText.settingsMiniTitle"
+                android:drawableLeft="@drawable/ic_languages"
+                android:text="   Whitepaper" />
             <TextView
                 style="@style/viewParent.headerText.settingsMiniTitle"
                 android:text="Regional"/>
@@ -102,10 +109,18 @@
                 android:text="Language" />
 
             <TextView
+                android:id="@+id/logoutBtn"
                 style="@style/viewParent.headerText.settingsTextIcon"
                 android:drawableLeft="@drawable/ic_logout"
                 android:text="Logout" />
 
+            <ImageView
+                style="@style/viewParent.headerText.settingsTextIcon"
+                android:layout_width="40dp"
+                android:id="@+id/telegram"
+                android:layout_gravity="center"
+                android:src="@drawable/telegram"
+                android:layout_height="40dp"/>
 
             <TextView
                 style="@style/viewParent.headerText.settingsMiniTitle"
