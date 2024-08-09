@@ -1,5 +1,7 @@
 package com.somai.elixirMiningNetwork;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
@@ -76,7 +78,7 @@ MaterialCardView airdrop,kyc,wallet,claimtoken;
         view= inflater.inflate(R.layout.fragment_home, container, false);
         todayDate = new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime());
 
-        sharedPreferences = this.getActivity().getSharedPreferences("userData", Context.MODE_PRIVATE);
+        sharedPreferences = this.getActivity().getSharedPreferences("userData", MODE_PRIVATE);
         auth = FirebaseAuth.getInstance();
         currentUser = auth.getCurrentUser();
         String userId = sharedPreferences.getString("userid", null);
@@ -93,16 +95,48 @@ MaterialCardView airdrop,kyc,wallet,claimtoken;
         countStreak=view.findViewById(R.id.countStreak);
         claimbtn=view.findViewById(R.id.claimbtn);
 
-        SharedPreferences prefs=this.getActivity().getSharedPreferences("userData", Context.MODE_PRIVATE);
+        SharedPreferences prefs=this.getActivity().getSharedPreferences("userData", MODE_PRIVATE);
         String name=prefs.getString("username",null);
+        if(name==null){
+            name="none";
+            databaseReference.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if(snapshot.exists()){
+                       String fir_name=snapshot.child("username").getValue(String.class);
+                        SharedPreferences.Editor editor=getActivity().getSharedPreferences("userData",MODE_PRIVATE).edit();
+                        editor.putString("username",fir_name);
+                        editor.apply();
+                       username.setText(String.valueOf(fir_name));
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
+        }
         String picture=prefs.getString("picture",null);
+
         imageView=view.findViewById(R.id.profileCircleImageView);
-        Glide
-                .with(this)
-                .load(picture)
-                .centerCrop()
-                .placeholder(R.drawable.default_user)
-                .into(imageView);
+        if(picture!=null){
+            Glide
+                    .with(this)
+                    .load(picture)
+                    .centerCrop()
+                    .placeholder(R.drawable.user_man)
+                    .into(imageView);
+        }
+        else{
+            Glide
+                    .with(this)
+                    .load(R.drawable.user_man)
+                    .centerCrop()
+                    .placeholder(R.drawable.user_man)
+                    .into(imageView);
+        }
+
 
         username.setText(name.toString());
         final String todayDate = new SimpleDateFormat("yyyyMMdd").format(Calendar.getInstance().getTime());
@@ -245,7 +279,7 @@ MaterialCardView airdrop,kyc,wallet,claimtoken;
                 }
             });
 
-            mRewardedAd.show(getActivity(), new OnUserEarnedRewardListener() {
+            mRewardedAd.show(requireActivity(), new OnUserEarnedRewardListener() {
                 @Override
                 public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
                     claimToken();
@@ -257,6 +291,7 @@ MaterialCardView airdrop,kyc,wallet,claimtoken;
         }
     }
     private void claimToken() {
+        Toast.makeText(getActivity(), "welcome", Toast.LENGTH_SHORT).show();
         databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {

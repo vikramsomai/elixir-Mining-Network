@@ -26,12 +26,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
 
 
 public class ProfileFragment extends Fragment {
 
 
-TextView editProfile,logout,username;
+TextView editProfile,username;
+MaterialCardView logout;
 ImageView imageView,telegram;
     private CounterService counterService;
 
@@ -50,30 +53,43 @@ ImageView imageView,telegram;
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view= inflater.inflate(R.layout.fragment_profile, container, false);
-      editProfile=view.findViewById(R.id.editProfile);
+//      editProfile=view.findViewById(R.id.editProfile);
       logout=view.findViewById(R.id.logoutBtn);
         SharedPreferences prefs=this.getActivity().getSharedPreferences("userData", MODE_PRIVATE);
 
         String name=prefs.getString("username",null);
+        if(name==null){
+            name="knownk";
+        }
         String email=prefs.getString("email",null);
         String picture=prefs.getString("picture",null);
 
         imageView=view.findViewById(R.id.profileCircleImageView);
         username=view.findViewById(R.id.usernameTextView);
-        telegram=view.findViewById(R.id.telegram);
+//        telegram=view.findViewById(R.id.telegram);
         username.setText(name);
-        Glide
-                .with(this)
-                .load(picture)
-                .centerCrop()
-                .placeholder(R.drawable.default_user)
-                .into(imageView);
-      editProfile.setOnClickListener(new View.OnClickListener() {
-          @Override
-          public void onClick(View view) {
-              Toast.makeText(getContext(), "Coming Soon..", Toast.LENGTH_SHORT).show();
-          }
-      });
+        if(picture!=null){
+            Glide
+                    .with(this)
+                    .load(picture)
+                    .centerCrop()
+                    .placeholder(R.drawable.user_man)
+                    .into(imageView);
+        }
+        else{
+            Glide
+                    .with(this)
+                    .load(R.drawable.user_man)
+                    .centerInside()
+                    .placeholder(R.drawable.user_man)
+                    .into(imageView);
+        }
+//      editProfile.setOnClickListener(new View.OnClickListener() {
+//          @Override
+//          public void onClick(View view) {
+//              Toast.makeText(getContext(), "Coming Soon..", Toast.LENGTH_SHORT).show();
+//          }
+//      });
 
       logout.setOnClickListener(new View.OnClickListener() {
           @Override
@@ -90,7 +106,6 @@ ImageView imageView,telegram;
                           SharedPreferences.Editor editor = prefs.edit();
                           editor.clear(); // Or editor.remove("userid");
                           editor.apply();
-
                           Intent stopIntent = new Intent(getActivity(), CounterService.class);
                           stopIntent.setAction("STOP_COUNTER");
                           getActivity().startService(stopIntent);
@@ -106,12 +121,12 @@ ImageView imageView,telegram;
 
           }
       });
-      telegram.setOnClickListener(new View.OnClickListener() {
-          @Override
-          public void onClick(View view) {
-            openTelegram();
-          }
-      });
+//      telegram.setOnClickListener(new View.OnClickListener() {
+//          @Override
+//          public void onClick(View view) {
+//            openTelegram();
+//          }
+//      });
 
        return  view;
     }

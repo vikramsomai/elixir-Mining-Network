@@ -53,6 +53,10 @@ public class ReferralActivity extends AppCompatActivity {
          name=sharedPreferences.getString("username",null);
         continues=findViewById(R.id.continueBtn);
         referralEdit=findViewById(R.id.referralEdit);
+        if(userId==null){
+            Intent i=new Intent(ReferralActivity.this,LoginActivity.class);
+            startActivity(i);
+        }
        auth = FirebaseAuth.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference("Users");
 
@@ -67,21 +71,22 @@ public class ReferralActivity extends AppCompatActivity {
     public void onReferralFound(String referrerUserId) {
 
         DatabaseReference referrerRef = databaseReference.child(referrerUserId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("referUserId", userId);
 
 
-        databaseReference.updateChildren(updates);
-        referrerRef.child("referrerId").push().child("Userid").setValue(userId);
+
+
+
         databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId);
 
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String referUser=snapshot.child("username").getValue(String.class);
-                referrerRef.child("referrerId").push().child("username").setValue(referUser);
-
-                updates.put("totalStreak", referUser);
+//                referrerRef.child("referrerId").push().child("username").setValue(referUser);
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("refer_UserId", userId);
+                updates.put("refer_username", referUser);
+               referrerRef.child("referrerId").push().updateChildren(updates);
             }
 
             @Override
@@ -90,7 +95,7 @@ public class ReferralActivity extends AppCompatActivity {
             }
         });
         referrerRef.child("referralCount").setValue(ServerValue.increment(1)); // Example: increment referral count
-        referrerRef.child("bonusPoints").setValue(ServerValue.increment(10)); // Example: add bonus points
+        referrerRef.child("bonusPoints").setValue(ServerValue.increment(5)); // Example: add bonus points
         // Proceed with linking the new user to the referrer
         Intent intent=new Intent(ReferralActivity.this,MainActivity.class);
         startActivity(intent);

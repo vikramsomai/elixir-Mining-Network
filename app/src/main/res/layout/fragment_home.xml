@@ -8,30 +8,28 @@
     tools:context="com.somai.elixirMiningNetwork.HomeFragment">
 
     <LinearLayout
-        android:background="#f3f5f4"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingTop="10dp">
+
     <RelativeLayout
         android:paddingLeft="10dp"
         android:layout_marginTop="20dp"
-        android:background="#f3f5f4"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/profileCircleImageView"
         android:layout_width="50dp"
-        android:background="#f3f5f4"
         android:layout_height="50dp"
         app:civ_border_width="1dp"
-        android:src="@drawable/profileuser"
+        app:civ_border_color="@color/cardBackground"
+        android:src="@drawable/user_man"
         android:layout_marginTop="18dp"
-        android:layout_marginLeft="10dp"/>
+        android:layout_marginLeft="15dp"/>
 
     <LinearLayout
-        android:background="#f3f5f4"
         android:layout_width="wrap_content"
         android:layout_marginLeft="65dp"
         android:orientation="vertical"
@@ -42,7 +40,7 @@
             style="@style/viewParent.headerText"
             android:text="Unkonwn"
             android:textSize="18sp"
-            android:background="#f3f5f4"
+            android:layout_marginLeft="10dp"
             android:textStyle="bold"
             android:layout_toRightOf="@id/profileCircleImageView"
             android:layout_marginTop="15dp"/>
@@ -51,64 +49,43 @@
             style="@style/viewParent.headerText"
             android:text="Level 1"
             android:textStyle="bold"
-            android:background="#f3f5f4"
             android:textSize="12sp"
+            android:layout_marginLeft="10dp"
             android:layout_toRightOf="@id/profileCircleImageView"
             android:layout_marginTop="0dp"/>
     </LinearLayout>
     </RelativeLayout>
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_marginTop="30dp"
-            android:backgroundTint="#FFF"
-            app:strokeWidth="0dp"
-            android:background="@drawable/rounded__card_shape"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
-            android:layout_height="70dp">
-
-<ImageView
-    android:layout_width="40dp"
-    android:layout_marginTop="12dp"
-    android:layout_marginLeft="40dp"
-    android:src="@drawable/blockchain"
-    android:layout_height="40dp"/>
-            <TextView
-                android:layout_width="wrap_content"
-                android:text="Testnet Is coming"
-                android:layout_marginTop="20dp"
-                android:textSize="18dp"
-                android:textColor="#fff"
-                android:textStyle="bold"
-                android:layout_marginLeft="100dp"
-                android:layout_height="wrap_content"/>
-        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="20dp"
+            android:background="#ffde59"
             app:strokeWidth="0dp"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
-            android:layout_height="190dp">
+            android:layout_height="210dp">
            <LinearLayout
                android:layout_width="match_parent"
                android:orientation="vertical"
-               android:backgroundTint="#FFF"
+               android:backgroundTint="#ffde59"
                app:strokeWidth="0dp"
-               android:padding="10dp"
+               android:padding="20dp"
                android:background="@drawable/rounded__card_shape"
                android:layout_height="match_parent">
                <TextView
+                   android:background="#ffde59"
+                   android:textStyle="bold"
                    android:layout_width="wrap_content"
                    android:text="Quick actions"
+                   android:textColor="@color/cardBackground"
+                   android:textSize="15dp"
                    android:paddingBottom="10dp"
                    android:layout_height="wrap_content"/>
   <GridLayout
       android:layout_width="match_parent"
       android:columnCount="4"
-
+      android:backgroundTint="#ffde59"
       android:useDefaultMargins="true"
       android:layout_height="match_parent">
 
@@ -116,20 +93,29 @@
                 android:layout_width="wrap_content"
                 app:strokeWidth="0dp"
                 android:padding="10dp"
+                android:backgroundTint="#ffde59"
                 android:id="@+id/wallet"
                 android:layout_height="60dp">
                 <LinearLayout
                     android:orientation="vertical"
                     android:textAlignment="center"
+
+                    android:backgroundTint="#ffde59"
+                    android:background="#ffde59"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
                     <ImageView
+                        android:backgroundTint="#ffde59"
                         android:layout_width="40dp"
+                        android:background="#ffde59"
                         android:layout_gravity="center"
                         android:src="@drawable/wallet"
+
                         android:layout_height="40dp"/>
                     <TextView
-
+                        android:background="#ffde59"
+                        android:textColor="#1c2336"
+                        android:backgroundTint="#ffde59"
                         android:layout_width="wrap_content"
                         android:text="Wallet"
                         android:layout_height="wrap_content"/>
@@ -140,21 +126,28 @@
                 android:layout_width="wrap_content"
                 app:strokeWidth="0dp"
                 android:id="@+id/kyc"
+                android:background="#ffde59"
                 android:padding="20dp"
                 android:layout_marginLeft="30dp"
                 android:layout_height="60dp">
                 <LinearLayout
                     android:orientation="vertical"
                     android:textAlignment="center"
+                    android:backgroundTint="#ffde59"
+                    android:background="#ffde59"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
                     <ImageView
+                        android:backgroundTint="#ffde59"
                         android:layout_width="40dp"
                         android:layout_gravity="center"
+                        android:background="#ffde59"
                         android:src="@drawable/kyc"
                         android:layout_height="40dp"/>
                     <TextView
+                        android:backgroundTint="#ffde59"
                         android:textAlignment="center"
+                        android:background="#ffde59"
                         android:layout_gravity="center"
                         android:layout_width="wrap_content"
                         android:text="Kyc"
@@ -164,6 +157,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
                 app:strokeWidth="0dp"
+                android:background="#ffde59"
                 android:id="@+id/airdrop"
                 android:layout_marginLeft="30dp"
                 android:padding="10dp"
@@ -171,16 +165,21 @@
                 <LinearLayout
                     android:orientation="vertical"
                     android:textAlignment="center"
+                    android:background="#ffde59"
+                    android:backgroundTint="#ffde59"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
                     <ImageView
                         android:layout_width="40dp"
+                        android:backgroundTint="#ffde59"
                         android:layout_gravity="center"
                         android:src="@drawable/airdrop"
                         android:layout_height="40dp"/>
                     <TextView
                         android:layout_width="wrap_content"
+                        android:backgroundTint="#ffde59"
                         android:text="Airdrop"
+                        android:background="#ffde59"
                         android:layout_height="wrap_content"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -190,21 +189,27 @@
           android:id="@+id/stakeing"
           android:layout_marginLeft="30dp"
           android:padding="10dp"
+          android:background="#ffde59"
           android:layout_height="60dp">
           <LinearLayout
               android:orientation="vertical"
               android:textAlignment="center"
+              android:background="#ffde59"
+              android:backgroundTint="#ffde59"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
               <ImageView
                   android:layout_width="40dp"
+                  android:background="#ffde59"
+                  android:backgroundTint="#ffde59"
                   android:layout_gravity="center"
                   android:src="@drawable/stake"
                   android:layout_height="40dp"/>
               <TextView
-
+                  android:backgroundTint="#ffde59"
                   android:layout_width="wrap_content"
                   android:text="Stake"
+                  android:background="#ffde59"
                   android:layout_height="wrap_content"/>
           </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
@@ -215,19 +220,22 @@
           android:id="@+id/airdrop"
           android:layout_marginLeft="5dp"
           android:padding="10dp"
+          android:backgroundTint="#ffde59"
           android:layout_height="60dp">
           <LinearLayout
               android:orientation="vertical"
               android:textAlignment="center"
+              android:backgroundTint="#ffde59"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
               <ImageView
                   android:layout_width="40dp"
                   android:layout_gravity="center"
+                  android:backgroundTint="#ffde59"
                   android:src="@drawable/shuttle"
                   android:layout_height="40dp"/>
               <TextView
-
+                  android:backgroundTint="#ffde59"
                   android:layout_width="wrap_content"
                   android:text="Boost"
                   android:layout_height="wrap_content"/>
@@ -247,25 +255,29 @@
     android:layout_height="70dp">
     <TextView
         android:layout_width="wrap_content"
-        android:text="Streak: "
+        android:text="0"
+        android:id="@+id/countStreak"
         android:textColor="#fff"
+        android:foregroundTint="#fff"
         android:textAlignment="center"
-
-        android:paddingTop="20dp"
-        android:paddingLeft="20dp"
-        android:textSize="20dp"
+        android:layout_marginTop="25dp"
+        android:layout_marginLeft="90dp"
+        android:background="#1c2336"
+        android:textColorHint="#fff"
+        android:textSize="16dp"
         android:textStyle="bold"
         android:layout_height="wrap_content"/>
     <TextView
         android:layout_width="wrap_content"
-        android:text="0"
-        android:id="@+id/countStreak"
+        android:text="Reward:"
         android:textColor="#fff"
+        android:foregroundTint="#fff"
         android:textAlignment="center"
-        android:paddingTop="20dp"
+        android:layout_marginTop="25dp"
+        android:layout_marginLeft="20dp"
         android:background="#1c2336"
-        android:paddingLeft="90dp"
-        android:textSize="20dp"
+        android:textColorHint="#fff"
+        android:textSize="16dp"
         android:textStyle="bold"
         android:layout_height="wrap_content"/>
     <com.google.android.material.card.MaterialCardView
@@ -273,17 +285,30 @@
         android:id="@+id/claimToken"
         android:clickable="true"
         android:layout_marginLeft="180dp"
+        app:strokeWidth="0dp"
+        android:backgroundTint="#ffde59"
         android:layout_marginTop="10dp"
         android:layout_height="50dp">
    <com.google.android.material.button.MaterialButton
        android:layout_width="120dp"
        android:text="Claim"
        android:id="@+id/claimbtn"
-       android:textColor="#000"
-       android:background="#ffffff"
+       android:textColor="@color/cardBackground"
+       android:backgroundTint="#ffde59"
        android:textStyle="bold"
+       app:strokeWidth="0dp"
        android:textSize="18dp"
        android:layout_height="50dp"/>
+<!--        <TextView-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:text="Claim"-->
+<!--            android:id="@+id/claimText"-->
+<!--            android:backgroundTint="#ffde59"-->
+<!--            android:textColor="@color/cardBackground"-->
+<!--            android:textSize="16dp"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:textStyle="bold"-->
+<!--            android:layout_height="wrap_content"/>-->
 
     </com.google.android.material.card.MaterialCardView>
 </com.google.android.material.card.MaterialCardView>

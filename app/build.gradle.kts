@@ -11,7 +11,7 @@ android {
         applicationId = "com.somai.elixirMiningNetwork"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
+        versionCode = 4
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -32,8 +32,9 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.google.firebase:firebase-functions:20.0.3")
-
+        // Add the dependency for the Firebase Authentication library
+        // When using the BoM, you don't specify versions in Firebase library dependencies
+        implementation("com.google.firebase:firebase-auth")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     // Import the BoM for the Firebase platform
     implementation("com.github.bumptech.glide:glide:4.16.0")

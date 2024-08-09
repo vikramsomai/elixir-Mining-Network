@@ -25,6 +25,7 @@ import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.OnUserEarnedRewardListener;
 import com.google.android.gms.ads.rewarded.RewardItem;
 import com.google.android.gms.ads.rewarded.RewardedAd;
@@ -44,11 +45,15 @@ public class MiningFragment extends Fragment {
     private boolean isBound = false;
     private double total = 0.0000;
     private RewardedAd mRewardedAd;
-
+    private boolean isAdLoaded = false;
     private SharedPreferences prefs;
 
     private DatabaseReference databaseReference;
-
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        MobileAds.initialize(getActivity(), initializationStatus -> {});
+    }
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -101,20 +106,23 @@ public class MiningFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mining, container, false);
+//        MobileAds.initialize(getActivity(), initializationStatus -> {});
+        loadRewardedAd();
 
         counterTextView = view.findViewById(R.id.counterTextView);
         miningTimer = view.findViewById(R.id.miningTimer);
         startButton = view.findViewById(R.id.startButton);
         totalCoins=view.findViewById(R.id.totalcoinsValue);
-        prefs = this.getActivity().getSharedPreferences("userData", Context.MODE_PRIVATE);
 
-        String userId = prefs.getString("userid", null);
 try {
+    prefs = this.getActivity().getSharedPreferences("userData", Context.MODE_PRIVATE);
+
+    String userId = prefs.getString("userid", null);
     databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId);
     databaseReference.addValueEventListener(new ValueEventListener() {
         @Override
         public void onDataChange(@NonNull DataSnapshot snapshot) {
-            Double totalCoinss=snapshot.child("totalcoins").getValue(Double.class);
+//            Double totalCoinss=snapshot.child("totalcoins").getValue(Double.class);
             Double coins=snapshot.child("value").getValue(Double.class);
             Double streak=snapshot.child("totalStreak").getValue(Double.class);
             if(coins==null){
@@ -178,22 +186,22 @@ try {
 }catch (Exception e){}
 
         startButton.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "clciked", Toast.LENGTH_SHORT).show();
-                showRewardedAd();
-            try {
+
                 if (isBound && counterService != null) {
                     if (counterService.isRunning) {
                         Toast.makeText(getContext(), "Mining already in progress", Toast.LENGTH_SHORT).show();
                     } else {
-                        Intent intent = new Intent(getActivity(), CounterService.class);
-                        intent.setAction("START_COUNTER");
-                        getActivity().startService(intent);
-                        startButton.setEnabled(false);
+                        if(isAdLoaded) {
+                            showRewardedAd();
+                            Intent intent = new Intent(getActivity(), CounterService.class);
+                            intent.setAction("START_COUNTER");
+                            getActivity().startService(intent);
+                            startButton.setEnabled(false);
+                        }
                     }
                 } else {
                     Toast.makeText(getContext(), "Service not bound or unavailable", Toast.LENGTH_SHORT).show();
                 }
-            }catch (Exception e){}
         });
 
         return view;
@@ -255,6 +263,23 @@ try {
             }
         }catch (Exception e){}
     }
+    private void loadRewardedAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+
+        RewardedAd.load(getActivity(), "ca-app-pub-1396109779371789/8267278610", adRequest, new RewardedAdLoadCallback() {
+            @Override
+            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                mRewardedAd = null;
+                isAdLoaded = false;
+            }
+
+            @Override
+            public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
+                mRewardedAd = rewardedAd;
+                isAdLoaded = true;
+            }
+        });
+    }
     private void showRewardedAd() {
         if (mRewardedAd != null) {
             mRewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
@@ -266,6 +291,7 @@ try {
                 @Override
                 public void onAdFailedToShowFullScreenContent(AdError adError) {
                     Toast.makeText(getActivity(), "Failed to show ad", Toast.LENGTH_SHORT).show();
+//                    claimToken();
                 }
 
                 @Override
@@ -274,32 +300,15 @@ try {
                 }
             });
 
-            mRewardedAd.show(getActivity(), new OnUserEarnedRewardListener() {
+            mRewardedAd.show(requireActivity(), new OnUserEarnedRewardListener() {
                 @Override
                 public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
-
+//                    claimToken();
                 }
             });
         } else {
             Toast.makeText(getActivity(), "Ad not loaded", Toast.LENGTH_SHORT).show();
+//            claimToken();
         }
-    }
-    private void loadRewardedAd() {
-        AdRequest adRequest = new AdRequest.Builder().build();
-
-        RewardedAd.load(getActivity(), "ca-app-pub-1396109779371789/9580360289", adRequest, new RewardedAdLoadCallback() {
-            @Override
-            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                mRewardedAd = null;
-//                isAdLoaded = false;
-                Toast.makeText(getActivity(), "Failed to load ad", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
-                mRewardedAd = rewardedAd;
-//                isAdLoaded = true;
-            }
-        });
     }
 }

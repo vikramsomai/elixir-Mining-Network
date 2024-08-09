@@ -9,9 +9,11 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -23,22 +25,25 @@ public class CounterService extends Service {
     private final IBinder binder = new LocalBinder();
     private double count = 0.0000;
     String userId;
-    private final double increment = 0.0001;
+    private final double increment = 0.00278;
     private final Handler handler = new Handler();
     private final long updateInterval = 1000L; // 1 second
     private long elapsedTime = 0L;
     private long countdownTotalTime = 4 * 3600 * 1000L; // 4 hours in milliseconds
     private long countdownRemainingTime = countdownTotalTime;
     public boolean isRunning = false;
+    Integer boost=0;
+    private SharedPreferences sharedPreferences;
     private DatabaseReference databaseReference;
 
     private final Runnable updateCounterRunnable = new Runnable() {
         @Override
         public void run() {
             try {
+
                 if (isRunning && elapsedTime < countdownTotalTime) {
                     count += increment;
-                    elapsedTime += updateInterval;
+                    elapsedTime +=updateInterval;
                     sendBroadcastUpdate();
                     updateFirebaseCounter();
                     handler.postDelayed(this, updateInterval);
@@ -70,16 +75,21 @@ public class CounterService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String action = intent.getAction();
-        if ("START_COUNTER".equals(action)) {
-            SharedPreferences sharedPreferences = getSharedPreferences("userData", MODE_PRIVATE);
-            String userId = sharedPreferences.getString("userid", null);
-            if (userId != null) {
-                startCounter();
+        try {
+            String action = intent.getAction();
+            if ("START_COUNTER".equals(action)) {
+                SharedPreferences sharedPreferences = getSharedPreferences("userData", MODE_PRIVATE);
+                String userId = sharedPreferences.getString("userid", null);
+                if (userId != null) {
+                    startCounter();
+                }
+            } else if ("STOP_COUNTER".equals(action)) {
+                stopCounter(); // Make sure this stops counting and updates Firebase
+                stopSelf(); // Stops the service itself
             }
-        } else if ("STOP_COUNTER".equals(action)) {
-            stopCounter(); // Make sure this stops counting and updates Firebase
-            stopSelf(); // Stops the service itself
+        }
+        catch (Exception e){
+
         }
         return START_NOT_STICKY;
     }
@@ -136,6 +146,7 @@ public class CounterService extends Service {
     }
 
     private void stopCounter() {
+
         isRunning = false;
         handler.removeCallbacks(updateCounterRunnable);
         updateFirebaseCounter();

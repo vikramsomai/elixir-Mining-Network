@@ -10,5 +10,6 @@
     <color name="imageBorderColor">#E01E7A</color>
     <color name="miniTitle">#2A2E43</color>
     <color name="white">#fff</color>
+    <color name="cardBackground">#1c2336</color>
 
 </resources>

@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Elixir</string>
     <string name="default_web_client_id">187179770639-rbnf0n5qvhjckbgirou5glk2o4ufkp2s.apps.googleusercontent.com</string>
+    <string name="webApi">AIzaSyBS5JWWg5Va_EyVHwhqJjYLLStnuh9HEpY</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="rewardAd1">ca-app-pub-1396109779371789/8267278610</string>
 </resources>

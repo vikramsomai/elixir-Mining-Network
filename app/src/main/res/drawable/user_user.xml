@@ -13,6 +13,7 @@
     <path
 
         android:fillAlpha="0.5"
+
         android:strokeColor="#1C274C"
         android:strokeAlpha="0.5"
         android:strokeWidth="2"
