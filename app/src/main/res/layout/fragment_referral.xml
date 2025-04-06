@@ -1,111 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context="com.somai.elixirMiningNetwork.ReferralFragment">
-    <LinearLayout
-        android:padding="16dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Referral"
-            android:textSize="20dp"
-            android:layout_marginTop="10dp"
-            android:textStyle="bold"
-            android:padding="10dp" />
-        <ImageView
+        android:background="@color/backgroundColor"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:padding="16dp"
+            android:background="@color/backgroundColor"
             android:layout_width="match_parent"
-            android:src="@drawable/referralimg"
-            android:layout_height="240dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:textSize="18dp"
-            android:layout_marginBottom="10dp"
-            android:textStyle="bold"
-            android:text="Refer and Increase Mining Speed"
-            android:layout_height="wrap_content"/>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            app:strokeWidth="0dp"
-            android:backgroundTint="#1c2336"
-            android:layout_margin="10dp"
-            android:layout_gravity="center"
-            android:background="@color/cardBackground"
-            android:layout_height="45dp">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
             <TextView
+                android:background="@color/backgroundColor"
                 android:layout_width="wrap_content"
-                android:text="Unkonwn"
-                android:layout_gravity="center"
-                android:id="@+id/referralCode"
-                android:textColor="@color/white"
-                android:backgroundTint="#1c2336"
+                android:layout_height="wrap_content"
+                android:text="Referral"
+                android:textSize="20dp"
+                android:textColor="#fff"
+                android:layout_marginTop="10dp"
                 android:textStyle="bold"
-                android:layout_height="wrap_content"/>
+                android:padding="10dp" />
             <ImageView
-                android:layout_width="20dp"
-                android:src="@drawable/copy"
-                android:id="@+id/copyref"
-                android:backgroundTint="#1c2336"
-                android:layout_marginTop="11dp"
-                android:layout_marginLeft="220dp"
-                android:layout_height="20dp"/>
-        </com.google.android.material.card.MaterialCardView>
-<!--        <TextView-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:text="Unknown"-->
-<!--            android:layout_marginTop="20dp"-->
-<!--            android:textSize="22dp"-->
-<!--            android:textStyle="bold"-->
-<!--            android:layout_gravity="center"-->
-<!--            android:id="@+id/referralCode"-->
-<!--            android:layout_height="wrap_content"/>-->
-   <RelativeLayout
-       android:layout_width="match_parent"
-       android:layout_height="wrap_content">
-       <TextView
-           android:layout_width="wrap_content"
-           android:text="Your referrals"
-           android:padding="20dp"
-           android:textSize="18dp"
-           android:textStyle="bold"
-           android:layout_height="wrap_content"/>
-       <TextView
-           android:layout_width="wrap_content"
-           android:text="0"
-           android:layout_alignParentEnd="true"
-           android:layout_marginTop="20dp"
-           android:textSize="18dp"
-           android:layout_marginRight="20dp"
-           android:textStyle="bold"
-           android:layout_gravity="center"
-           android:id="@+id/referralcount"
-           android:layout_height="wrap_content"/>
-   </RelativeLayout>
+                android:background="@color/backgroundColor"
+                android:layout_width="match_parent"
+                android:src="@drawable/referralimg"
+                android:layout_height="240dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:gravity="center"
+                android:layout_gravity="center"
+                android:textColor="#fff"
+                android:textSize="18dp"
+                android:background="@color/backgroundColor"
+                android:layout_marginBottom="10dp"
+                android:textStyle="bold"
+                android:text="Refer and Increase Mining Speed"
+                android:layout_height="wrap_content"/>
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                app:strokeWidth="0dp"
+                android:backgroundTint="@color/cardBackground"
+                android:layout_margin="10dp"
+                android:layout_gravity="center"
+                android:background="@color/cardBackground"
+                android:layout_height="45dp">
 
-<!--        <com.google.android.material.card.MaterialCardView-->
-<!--            android:layout_width="match_parent"-->
-<!--            app:strokeWidth="0dp"-->
-<!--            android:backgroundTint="#1c2336"-->
-<!--            android:layout_margin="10dp"-->
-<!--            android:layout_gravity="center"-->
-<!--            android:background="@color/cardBackground"-->
-<!--            android:layout_height="45dp">-->
 
-<!--        </com.google.android.material.card.MaterialCardView>-->
-<!--        <androidx.recyclerview.widget.RecyclerView-->
-<!--            android:id="@+id/recyclerView"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:padding="16dp" />-->
 
-    </LinearLayout>
+                <TextView
+                    android:id="@+id/referralCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:backgroundTint="#1c2336"
+                    android:text="Unkonwn"
+                    android:layout_marginRight="10dp"
+                    android:textColor="@color/white"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/copyref"
+                    android:layout_width="15dp"
+                    android:layout_marginLeft="35dp"
+                    android:layout_gravity="center"
+                    android:layout_height="22dp"
+                    android:backgroundTint="#1c2336"
+                    android:src="@drawable/copy"/>
+
+
+            </com.google.android.material.card.MaterialCardView>
+            <!--        <TextView-->
+            <!--            android:layout_width="wrap_content"-->
+            <!--            android:text="Unknown"-->
+            <!--            android:layout_marginTop="20dp"-->
+            <!--            android:textSize="22dp"-->
+            <!--            android:textStyle="bold"-->
+            <!--            android:layout_gravity="center"-->
+            <!--            android:id="@+id/referralCode"-->
+            <!--            android:layout_height="wrap_content"/>-->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:background="@color/backgroundColor"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="Your referrals"
+                    android:paddingTop="18dp"
+                    android:textColor="#fff"
+                    android:textSize="18dp"
+                    android:background="@color/backgroundColor"
+                    android:textStyle="bold"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="0"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="20dp"
+                    android:textSize="18dp"
+                    android:textColor="#fff"
+                    android:background="@color/backgroundColor"
+                    android:layout_marginRight="20dp"
+                    android:textStyle="bold"
+                    android:layout_gravity="center"
+                    android:id="@+id/referralcount"
+                    android:layout_height="wrap_content"/>
+            </RelativeLayout>
+
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:backgroundTint="@color/backgroundColor"
+                android:background="@color/cardBackground"
+                android:layout_width="match_parent"
+                android:layout_height="250dp" />
+
+        </LinearLayout>
+    </ScrollView>
 </FrameLayout>

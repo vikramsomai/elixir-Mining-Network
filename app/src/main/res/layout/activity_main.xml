@@ -6,22 +6,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.somai.elixirMiningNetwork.MainActivity">
+
+    tools:context="network.lynx.app.MainActivity">
 
     <FrameLayout
         android:id="@+id/framelayout"
+        android:background="@color/backgroundColor"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+ />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomview"
-        app:itemIconSize="25dp"
-
-        app:itemBackground="@color/white"
-        app:itemActiveIndicatorStyle="@drawable/rounded__card_shape"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:menu="@menu/bottom_nav_menu"/>
-
+        android:background="@drawable/bottom_background"
+        app:itemBackground="@drawable/bottom_background"
+        app:itemTextColor="@color/white"
+        app:itemIconTint="@color/colorPrimary"
+        android:paddingBottom="4dp"
+        app:itemPaddingBottom="0dp"
+        style="@style/CustomBottomNavigationView"
+        app:menu="@menu/bottom_nav_menu"
+        app:itemIconSize="30dp"/>
 </LinearLayout>

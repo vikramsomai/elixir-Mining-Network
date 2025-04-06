@@ -4,11 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".WalletFragment">
+    tools:context="network.lynx.app.WalletFragment">
+    <ScrollView
+        android:layout_width="match_parent"
+        android:background="@color/backgroundColor"
+        android:layout_height="match_parent">
     <LinearLayout
         android:orientation="vertical"
         android:layout_marginTop="20dp"
-        android:layout_gravity="center"
+        android:background="@color/backgroundColor"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <TextView
@@ -16,8 +20,10 @@
             android:layout_height="wrap_content"
             android:text="Wallet"
             android:textSize="20dp"
+            android:background="@color/backgroundColor"
             android:paddingLeft="25dp"
             android:textStyle="bold"
+            android:textColor="#fff"
             android:paddingTop="10dp" />
 <com.google.android.material.card.MaterialCardView
     android:layout_width="match_parent"
@@ -26,7 +32,7 @@
     android:layout_marginLeft="20dp"
     android:background="@drawable/rounded__card_shape"
     android:layout_marginRight="20dp"
-    android:backgroundTint="#1c2336"
+    android:backgroundTint="@color/forgroundColor"
     android:layout_height="150dp">
    <RelativeLayout
        android:backgroundTint="#1c2336"
@@ -68,19 +74,20 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
     android:layout_margin="20dp"
-
-    android:layout_height="100dp">
+    android:background="@color/backgroundColor"
+    android:layout_height="wrap_content">
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="150dp"
         android:layout_height="45dp"
 
         android:background="@color/cardBackground"
-        android:backgroundTint="#1c2336"
+        android:backgroundTint="@color/forgroundColor"
         app:layout_constraintEnd_toStartOf="@+id/materialCardView"
-        app:layout_constraintHorizontal_bias="0.014"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:strokeWidth="0dp"
+        tools:ignore="MissingConstraints"
         tools:layout_editor_absoluteY="0dp">
 
         <ImageView
@@ -112,6 +119,7 @@
         android:backgroundTint="#ffde59"
         app:layout_constraintEnd_toEndOf="parent"
         app:strokeWidth="0dp"
+        tools:ignore="MissingConstraints"
         tools:layout_editor_absoluteY="0dp">
 
         <ImageView
@@ -134,4 +142,5 @@
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
+    </ScrollView>
 </FrameLayout>

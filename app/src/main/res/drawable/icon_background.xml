@@ -1,0 +1,5 @@
+<!-- res/drawable/icon_background_home.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/backgroundColor"/>
+    <corners android:radius="0dp"/>
+</shape>

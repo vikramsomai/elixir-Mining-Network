@@ -16,8 +16,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
+
 }
 
-rootProject.name = "Elixir Network"
+rootProject.name = "Lynx Network"
 include(":app")

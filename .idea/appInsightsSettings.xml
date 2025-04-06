@@ -3,13 +3,27 @@
   <component name="AppInsightsSettings">
     <option name="tabSettings">
       <map>
+        <entry key="Android Vitals">
+          <value>
+            <InsightsFilterSettings>
+              <option name="connection">
+                <ConnectionSetting>
+                  <option name="appId" value="com.somai.animeandgamingfreewallpaper" />
+                </ConnectionSetting>
+              </option>
+              <option name="signal" value="SIGNAL_UNSPECIFIED" />
+              <option name="timeIntervalDays" value="SEVEN_DAYS" />
+              <option name="visibilityType" value="ALL" />
+            </InsightsFilterSettings>
+          </value>
+        </entry>
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.somai.elixirMiningNetwork" />
-                  <option name="mobileSdkAppId" value="1:187179770639:android:23012cbb1fde31ad0f547a" />
+                  <option name="appId" value="network.lynx.app" />
+                  <option name="mobileSdkAppId" value="1:187179770639:android:3f8da27ab9ceae5a0f547a" />
                   <option name="projectId" value="elixir-mining-app" />
                   <option name="projectNumber" value="187179770639" />
                 </ConnectionSetting>

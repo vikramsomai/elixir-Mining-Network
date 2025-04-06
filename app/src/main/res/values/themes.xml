@@ -1,16 +1,24 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme enforcing light mode. -->
+    <!-- Application-wide light theme -->
     <style name="Base.Theme.Patra" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Ensure the light theme settings override any dark mode settings. -->
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:textColor">@android:color/black</item>
-        <item name="android:background">@android:color/white</item>
-        <!-- Force light mode -->
-        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+<!--        <item name="android:statusBarColor">@color/cardBackground</item>-->
+<!--        <item name="android:windowLightStatusBar">false</item>-->
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorPrimaryVariant">@color/green</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/green</item>
+        <item name="colorSecondaryVariant">@color/green</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/backgroundColor</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
     </style>
 
-    <style name="Theme.Patra" parent="Base.Theme.Patra"/>
+    <!-- Dark theme for ProfileEditActivity -->
+    <style name="Theme.Patra.Dark" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/backgroundColor</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+    </style>
 </resources>

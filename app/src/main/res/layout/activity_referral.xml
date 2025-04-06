@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".ReferralActivity">
+    tools:context="network.lynx.app.ReferralActivity">
 <TextView
     android:layout_width="wrap_content"
     android:layout_gravity="center"
@@ -27,6 +27,13 @@
         android:id="@+id/referralEdit"
         android:textStyle="bold"
             android:background="@drawable/edittext_bg"
+        android:layout_height="wrap_content"/>
+    <TextView
+        android:id="@+id/skip"
+        android:layout_width="wrap_content"
+        android:text="Skip"
+        android:textColor="@color/white"
+        android:layout_marginBottom="15dp"
         android:layout_height="wrap_content"/>
     <com.google.android.material.button.MaterialButton
         android:layout_width="200dp"

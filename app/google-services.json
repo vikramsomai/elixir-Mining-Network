@@ -3,17 +3,30 @@
     "project_number": "187179770639",
     "firebase_url": "https://elixir-mining-app-default-rtdb.firebaseio.com",
     "project_id": "elixir-mining-app",
-    "storage_bucket": "elixir-mining-app.appspot.com"
+    "storage_bucket": "elixir-mining-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:187179770639:android:23012cbb1fde31ad0f547a",
+        "mobilesdk_app_id": "1:187179770639:android:3f8da27ab9ceae5a0f547a",
         "android_client_info": {
-          "package_name": "com.somai.elixirMiningNetwork"
+          "package_name": "network.lynx.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "187179770639-4k8umu9l4ivmp266a31ik23lre9c8022.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "network.lynx.app",
+            "certificate_hash": "2a2e04fdd774bb2f0e92f9f80f4a235c404ebd85"
+          }
+        },
+        {
+          "client_id": "187179770639-a1pmgdh7df5tqliggmr5p1r8844i66mr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBS5JWWg5Va_EyVHwhqJjYLLStnuh9HEpY"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "187179770639-a1pmgdh7df5tqliggmr5p1r8844i66mr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

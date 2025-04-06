@@ -4,36 +4,39 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
-    android:backgroundTint="@color/cardBackground"
-    android:background="#1c2336" android:layout_width="match_parent" android:layout_height="match_parent" tools:context=".LoginActivity">
+    android:backgroundTint="@color/backgroundColor"
+
+    android:background="#1c2336" android:layout_width="match_parent" android:layout_height="match_parent" tools:context="network.lynx.app.LoginActivity">
     <RelativeLayout
         android:layout_width="match_parent"
         android:background="#1c2336"
         android:layout_height="match_parent"
-        tools:context=".MainActivity">
+        tools:context="network.lynx.app.MainActivity">
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#1c2336"
             android:alpha="0.7" />
-        <LinearLayout
-            android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center"   android:background="#1c2336" android:layout_above="@id/card_view" android:padding="28dp">
-            <ImageView
-                android:layout_width="150dp"
-                android:layout_height="150dp"
-                android:src="@drawable/splash_logo" />
-        </LinearLayout>
-        <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" app:cardCornerRadius="28dp" android:layout_marginBottom="-20dp" android:id="@+id/card_view">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="28dp">
+<!--        <LinearLayout-->
+<!--            android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center"   android:background="#1c2336" android:layout_above="@id/card_view" android:padding="28dp">-->
+<!--            <ImageView-->
+<!--                android:layout_width="150dp"-->
+<!--                android:layout_height="150dp"-->
+<!--                android:src="@drawable/logo" />-->
+<!--        </LinearLayout>-->
+        <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" app:cardCornerRadius="28dp" android:layout_marginBottom="10dp" android:id="@+id/card_view">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="28dp"
+                android:background="@color/white"
+                android:backgroundTint="@color/white">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Welcome" android:textColor="@color/cardBackground" android:textSize="32sp" android:textStyle="bold" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Please Regsiter with your information" android:alpha="0.7" />
-                <View android:layout_width="wrap_content" android:layout_height="30dp" />
+                <View android:layout_width="wrap_content" android:layout_height="20dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Username" android:alpha="0.7" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/username"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:inputType="textEmailAddress"  />
-                <View android:layout_width="wrap_content" android:layout_height="30dp" />
+                <View android:layout_width="wrap_content" android:layout_height="20dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Email Address" android:alpha="0.7" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/email"
@@ -44,22 +47,95 @@
                 <EditText
                     android:id="@+id/password"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:inputType="textPassword" android:drawableEnd="@drawable/password_icon" />
-                <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Have an account? " android:layout_alignParentStart="true" android:layout_centerVertical="true" />
-                    <TextView android:id="@+id/loginid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Login" android:layout_alignParentEnd="true" android:layout_centerVertical="true" />
-                </RelativeLayout>
+                    android:layout_height="wrap_content" android:inputType="textPassword"  />
+<!--                android:drawableEnd="@drawable/password_icon"-->
                 <View android:layout_width="wrap_content" android:layout_height="10dp"  />
-                <com.google.android.material.button.MaterialButton
+                <LinearLayout
                     android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
 
+                    <CheckBox
+                        android:id="@+id/termsCheckBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <TextView
+                        android:id="@+id/termsTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="I agree to the Terms and Conditions"
+                        android:textColor="@color/card1"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingStart="5dp"/>
+                </LinearLayout>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_marginBottom="10dp"
                     android:backgroundTint="@color/cardBackground"
                     android:layout_height="60dp"
+                    app:cardCornerRadius="20dp"
+                    android:background="@color/cardBackground"
                     app:strokeWidth="0dp"
-                    android:layout_marginBottom="50dp"
-                    android:text="Signup"
+                    android:id="@+id/signupBtn">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:text="Create Account"
+                        android:backgroundTint="@color/cardBackground"
+                        android:textColor="#fff"
+                        android:background="@color/cardBackground"
+                        android:textStyle="bold"
+                        android:layout_gravity="center"
+                        android:layout_height="wrap_content"/>
+                </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/googleSignUpBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:backgroundTint="@color/cardBackground"
+                    android:textColor="@color/white"
                     android:textStyle="bold"
-                    android:id="@+id/signupBtn"  />
+                    app:strokeWidth="0dp"
+                    app:cardCornerRadius="20dp"
+                    android:layout_marginBottom="10dp">
+                    <ImageView
+                        android:layout_width="25dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="start"
+                        android:layout_marginTop="20dp"
+                        app:strokeWidth="0dp"
+                        android:layout_marginLeft="60dp"
+                        android:src="@drawable/search"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:textStyle="bold"
+                        android:layout_marginLeft="10dp"
+                        android:textColor="@color/white"
+                        android:layout_gravity="center"
+                        android:text="Sign Up with Google"
+                        android:layout_height="wrap_content"/>
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                   android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
+                    android:gravity="center">
+                    <TextView
+                        android:textStyle="bold"
+                        android:textColor="@color/card1"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Already have an account? " android:layout_alignParentStart="true" android:layout_centerVertical="true" />
+                    <TextView
+                        android:textSize="16dp"
+                        android:textStyle="bold"
+                        android:id="@+id/loginid" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Login" android:layout_alignParentEnd="true" android:layout_centerVertical="true" />
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
