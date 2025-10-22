@@ -1,13 +1,12 @@
 package network.lynx.app;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,10 +31,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
 public class ProfileEditActivity extends AppCompatActivity {
 
-    private EditText editUsername;
-    private TextView editEmail;
-    ImageView back;
-    private Button deleteAccountButton;
+    private TextView emailView, referralCodeView;
+    private ImageView backButton, copyReferralButton;
+    private View deleteAccountButton, logoutButton;
 
     private DatabaseReference databaseReference;
     private FirebaseAuth auth;
@@ -59,21 +57,24 @@ public class ProfileEditActivity extends AppCompatActivity {
         }
 
         // Initialize UI components
-        editUsername = findViewById(R.id.username);
-        editEmail = findViewById(R.id.email_view);
+        emailView = findViewById(R.id.email_view);
+        referralCodeView = findViewById(R.id.referral_code_view);
+        backButton = findViewById(R.id.backNav);
+        copyReferralButton = findViewById(R.id.copy_referral);
         deleteAccountButton = findViewById(R.id.deleteBtn);
-        back=findViewById(R.id.backNav);
+        logoutButton = findViewById(R.id.logoutBtn);
 
-        // Load user data from Firebase
+        // Load user data
         loadUserProfile();
-        back.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-            }
-        });
-        // Handle account deletion
-        deleteAccountButton.setOnClickListener(view -> confirmDeleteAccount());
+
+        // Set up click listeners
+        backButton.setOnClickListener(v -> finish());
+
+        copyReferralButton.setOnClickListener(v -> copyReferralCode());
+
+        deleteAccountButton.setOnClickListener(v -> confirmDeleteAccount());
+
+        logoutButton.setOnClickListener(v -> confirmLogout());
     }
 
     // Fetch user profile data from Firebase
@@ -83,23 +84,33 @@ public class ProfileEditActivity extends AppCompatActivity {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     if (snapshot.exists()) {
-                        String username = snapshot.child("username").getValue(String.class);
                         String email = snapshot.child("email").getValue(String.class);
+                        String referralCode = snapshot.child("referralCode").getValue(String.class);
 
-                        if (username != null) {
-                            editUsername.setText(username);
-                        }
                         if (email != null) {
-                            editEmail.setText(email);
+                            emailView.setText(email);
+                        }
+                        if (referralCode != null) {
+                            referralCodeView.setText(referralCode);
                         }
                     }
                 }
 
                 @Override
                 public void onCancelled(@NonNull DatabaseError error) {
-                    Toast.makeText(ProfileEditActivity.this, "Failed to load profile", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showInfo(ProfileEditActivity.this, "Failed to load profile");
                 }
             });
+        }
+    }
+
+    private void copyReferralCode() {
+        String referralCode = referralCodeView.getText().toString();
+        if (!referralCode.isEmpty()) {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("Referral Code", referralCode);
+            clipboard.setPrimaryClip(clip);
+            ToastUtils.showInfo(this, "Referral code copied!");
         }
     }
 
@@ -113,10 +124,43 @@ public class ProfileEditActivity extends AppCompatActivity {
                 .show();
     }
 
+    // Confirm logout
+    private void confirmLogout() {
+        new AlertDialog.Builder(this)
+                .setTitle("Log Out")
+                .setMessage("Are you sure you want to log out?")
+                .setPositiveButton("Log Out", (dialog, which) -> logoutUser())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void logoutUser() {
+        // Clear shared preferences
+        String userId = sharedPreferences.getString("userid", "unknown_user");
+
+// Clear per-user preference
+        SharedPreferences userCheckinPrefs = getSharedPreferences("user_checkin_" + userId, MODE_PRIVATE);
+        userCheckinPrefs.edit().clear().apply();
+
+// Clear general user data
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
+
+        // Sign out from Firebase
+        auth.signOut();
+
+        // Redirect to login screen
+        Intent intent = new Intent(ProfileEditActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     // Show an input dialog to get the user's password
     private void askForPasswordAndDelete() {
         if (currentUser == null) {
-            Toast.makeText(this, "Error: No user logged in", Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Error: No user logged in");
             return;
         }
 
@@ -130,16 +174,16 @@ public class ProfileEditActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Confirm Password");
 
-        final EditText input = new EditText(this);
-        input.setHint("Enter your password");
-        builder.setView(input);
+        final View inputView = getLayoutInflater().inflate(R.layout.dialog_password, null);
+        builder.setView(inputView);
 
         builder.setPositiveButton("Confirm", (dialog, which) -> {
-            String password = input.getText().toString().trim();
+            TextView passwordInput = inputView.findViewById(R.id.password_input);
+            String password = passwordInput.getText().toString().trim();
             if (!password.isEmpty()) {
                 deleteAccount(password);
             } else {
-                Toast.makeText(ProfileEditActivity.this, "Password required", Toast.LENGTH_SHORT).show();
+                ToastUtils.showInfo(ProfileEditActivity.this, "Password required");
             }
         });
 
@@ -150,7 +194,7 @@ public class ProfileEditActivity extends AppCompatActivity {
     // Delete user account with proper re-authentication
     private void deleteAccount(String password) {
         if (currentUser == null || databaseReference == null) {
-            Toast.makeText(this, "Error: No user logged in", Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Error: No user logged in");
             return;
         }
 
@@ -163,10 +207,12 @@ public class ProfileEditActivity extends AppCompatActivity {
             if (account != null) {
                 credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
             }
+        } else if (currentUser.getProviderData().get(1).getProviderId().equals("facebook.com")) {
+            credential = FacebookAuthProvider.getCredential(currentUser.getUid());
         }
 
         if (credential == null) {
-            Toast.makeText(this, "Failed to authenticate. Please log in again.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Failed to authenticate. Please log in again.");
             return;
         }
 
@@ -180,15 +226,16 @@ public class ProfileEditActivity extends AppCompatActivity {
                             if (task1.isSuccessful()) {
                                 clearAppData(); // Clear storage and redirect
                             } else {
-                                Toast.makeText(ProfileEditActivity.this, "Failed to delete account: " + task1.getException().getMessage(), Toast.LENGTH_LONG).show();
+                                ToastUtils.showInfo(ProfileEditActivity.this, "Failed to delete account: " +
+                                        task1.getException().getMessage());
                             }
                         });
                     } else {
-                        Toast.makeText(ProfileEditActivity.this, "Failed to delete user data", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showInfo(ProfileEditActivity.this, "Failed to delete user data");
                     }
                 });
             } else {
-                Toast.makeText(ProfileEditActivity.this, "Re-authentication failed. Please check your password.", Toast.LENGTH_SHORT).show();
+                ToastUtils.showInfo(ProfileEditActivity.this, "Re-authentication failed. Please check your password.");
             }
         });
     }
@@ -199,7 +246,7 @@ public class ProfileEditActivity extends AppCompatActivity {
         editor.clear();
         editor.apply();
 
-        Toast.makeText(ProfileEditActivity.this, "Account deleted successfully", Toast.LENGTH_SHORT).show();
+        ToastUtils.showInfo(ProfileEditActivity.this, "Account deleted successfully");
         auth.signOut();
 
         Intent intent = new Intent(ProfileEditActivity.this, LoginActivity.class);

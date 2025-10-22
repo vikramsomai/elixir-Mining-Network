@@ -29,13 +29,24 @@ public class LevelSystem {
             new Level(9, 100000, 100, 40),
             new Level(10, 250000, 150, 50)
     );
-    public static int getNewLevel(Double minedCoins, int referrals) {
-        int newLevel = 1;
-        for (Level level : levels) {
-            if (minedCoins >= level.minedCoinsRequired && referrals >= level.referralsRequired) {
-                newLevel = level.level;
-            }
-        }
-        return newLevel;
+
+    public static int getNewLevel(double totalCoins, int referrals) {
+        // Logic based on coins & referrals.
+        if (totalCoins > 1000) return 5;
+        else if (totalCoins > 500) return 4;
+        else if (totalCoins > 250) return 3;
+        else if (totalCoins > 100) return 2;
+        return 1;
     }
+
+    public static String getLevelBenefits(int level) {
+        switch (level) {
+            case 2: return "• Boost Speed x1.2\n• Daily Bonus +10%";
+            case 3: return "• Boost Speed x1.5\n• Daily Bonus +20%";
+            case 4: return "• Boost Speed x2\n• Ad-free Experience";
+            case 5: return "• VIP Badge\n• Access to Premium Features";
+            default: return "• Keep going to unlock rewards!";
+        }
+    }
+
 }

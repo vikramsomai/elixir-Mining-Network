@@ -31,12 +31,11 @@ public class MiningBlobView extends View {
     private final int LAYERS = 3;
     private final int PARTICLES = 20;
 
-    // Jarvis-style colors
-    private final int JARVIS_MAIN = Color.parseColor("#00E676");    // Bright green
-    private final int JARVIS_GLOW = Color.parseColor("#69F0AE");    // Light green glow
-    private final int JARVIS_ACCENT = Color.parseColor("#B9F6CA");  // Very light green accent
+    // Green mining colors
+    private final int MINING_MAIN = Color.parseColor("#00E676");
+    private final int MINING_GLOW = Color.parseColor("#69F0AE");
+    private final int MINING_ACCENT = Color.parseColor("#B9F6CA");
 
-    // Class to represent floating particles
     private class Particle {
         float x, y;
         float size;
@@ -66,7 +65,6 @@ public class MiningBlobView extends View {
             y = centerY + (float) Math.sin(Math.toRadians(angle)) * distance;
             alpha = 50 + 100 * (float) Math.sin(time + angle * 0.2f);
 
-            // If particle goes too far, reset it
             if (distance > baseRadius * 1.5f) {
                 reset(centerX, centerY, baseRadius);
             }
@@ -103,13 +101,13 @@ public class MiningBlobView extends View {
         particlePaint = new Paint();
         particlePaint.setAntiAlias(true);
         particlePaint.setStyle(Paint.Style.FILL);
-        particlePaint.setColor(JARVIS_GLOW);
+        particlePaint.setColor(MINING_GLOW);
 
         glowPaint = new Paint();
         glowPaint.setAntiAlias(true);
         glowPaint.setStyle(Paint.Style.STROKE);
         glowPaint.setStrokeWidth(4f);
-        glowPaint.setColor(JARVIS_ACCENT);
+        glowPaint.setColor(MINING_ACCENT);
 
         layerRadii = new float[LAYERS];
         layerPhases = new float[LAYERS];
@@ -130,21 +128,18 @@ public class MiningBlobView extends View {
         centerY = h / 2f;
         baseRadius = Math.min(w, h) * 0.35f;
 
-        // Initialize layer radii
         for (int i = 0; i < LAYERS; i++) {
             layerRadii[i] = baseRadius * (0.7f + 0.3f * i / LAYERS);
         }
 
-        // Create Jarvis-style radial gradient
         RadialGradient gradient = new RadialGradient(
                 centerX, centerY, baseRadius * 1.5f,
-                new int[]{JARVIS_MAIN, JARVIS_GLOW, Color.TRANSPARENT},
+                new int[]{MINING_MAIN, MINING_GLOW, Color.TRANSPARENT},
                 new float[]{0.3f, 0.7f, 1.0f},
                 Shader.TileMode.CLAMP
         );
         mainPaint.setShader(gradient);
 
-        // Initialize particles
         particles.clear();
         for (int i = 0; i < PARTICLES; i++) {
             particles.add(new Particle(centerX, centerY, baseRadius));
@@ -156,7 +151,7 @@ public class MiningBlobView extends View {
         super.onDraw(canvas);
 
         // Draw outer glow
-        glowPaint.setAlpha(50 + (int)(50 * Math.sin(time * 0.8)));
+        glowPaint.setAlpha(50 + (int) (50 * Math.sin(time * 0.8)));
         canvas.drawCircle(centerX, centerY, baseRadius * 1.1f, glowPaint);
 
         // Draw base layer with pulsing effect
@@ -180,7 +175,6 @@ public class MiningBlobView extends View {
                 path.lineTo(x, y);
             }
 
-            // Use Jarvis green with varying alpha for layers
             mainPaint.setAlpha(80 - i * 20);
             canvas.drawPath(path, mainPaint);
         }
@@ -192,17 +186,14 @@ public class MiningBlobView extends View {
         }
 
         // Draw inner highlight ring
-        glowPaint.setAlpha(100 + (int)(100 * Math.sin(time * 1.2)));
+        glowPaint.setAlpha(100 + (int) (100 * Math.sin(time * 1.2)));
         glowPaint.setStrokeWidth(2f);
         canvas.drawCircle(centerX, centerY, baseRadius * 0.7f, glowPaint);
 
-        // Reset alpha for next draw
         mainPaint.setAlpha(255);
         glowPaint.setAlpha(255);
 
-        // Update animation
         time += 0.05f;
         invalidate();
     }
 }
-

@@ -3,6 +3,7 @@ package network.lynx.app;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,7 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class splash extends AppCompatActivity {
 
-    private static final int SPLASH_TIME_OUT = 2000; // 2 seconds
+    private static final int SPLASH_TIME_OUT = 1000; // 2 seconds
     private TextView noInternetText;
     private Button retryButton;
 
@@ -42,14 +43,28 @@ public class splash extends AppCompatActivity {
             } else {
                 noInternetText.setVisibility(View.VISIBLE);
                 retryButton.setVisibility(View.VISIBLE);
-                Toast.makeText(splash.this, "No internet connection", Toast.LENGTH_SHORT).show();
+                ToastUtils.showError(splash.this, "No internet connection");
             }
         }, SPLASH_TIME_OUT);
     }
 
     private boolean isConnectedToInternet() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+        if (cm == null) return false;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.net.Network network = cm.getActiveNetwork();
+            if (network == null) return false;
+
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
+            return capabilities != null &&
+                    (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+        } else {
+            // For older devices
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            return activeNetwork != null && activeNetwork.isConnected();
+        }
     }
 }

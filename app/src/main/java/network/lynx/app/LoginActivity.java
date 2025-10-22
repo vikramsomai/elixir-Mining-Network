@@ -90,11 +90,11 @@ public class LoginActivity extends AppCompatActivity {
             String pass = password.getText().toString().trim();
 
             if (TextUtils.isEmpty(email)) {
-                emailBox.setError("Email is required");
+                emailBox.setError("Please enter your email");
                 return;
             }
             if (TextUtils.isEmpty(pass)) {
-                password.setError("Password is required");
+                password.setError("Please enter your password");
                 return;
             }
 
@@ -106,7 +106,7 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(new Intent(LoginActivity.this, MainActivity.class));
                             finish();
                         } else {
-                            Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                            ToastUtils.showInfo(this, "Login failed. Please check your credentials");
                         }
                     });
         });
@@ -139,7 +139,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         } catch (ApiException e) {
             Log.w(TAG, "Google sign in failed", e);
-            Toast.makeText(this, "Google Sign-in failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Google Sign-in failed: " + e.getMessage());
         }
     }
 
@@ -152,14 +152,14 @@ public class LoginActivity extends AppCompatActivity {
                 updateUI(user);
             } else {
                 Log.e("FirebaseAuth", "Firebase sign-in failed", task.getException());
-                Toast.makeText(this, "Firebase Sign-in failed.", Toast.LENGTH_LONG).show();
+                ToastUtils.showInfo(this, "Sign-in failed." );
             }
         });
     }
 
     private void updateUI(FirebaseUser user) {
         if (user == null) {
-            Toast.makeText(this, "User is null!", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "User is null!", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -197,7 +197,7 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(intent);
                             finish();
                         } else {
-                            Toast.makeText(LoginActivity.this, "Failed to save new user info.", Toast.LENGTH_SHORT).show();
+                            ToastUtils.showInfo(LoginActivity.this, "Failed to save new user info.");
                         }
                     });
                 }
@@ -205,7 +205,7 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(LoginActivity.this, "Database error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+//                Toast.makeText(LoginActivity.this, "Database error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

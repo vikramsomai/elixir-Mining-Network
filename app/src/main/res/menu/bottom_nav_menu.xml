@@ -6,7 +6,7 @@
         android:id="@+id/navHome"
         android:icon="@drawable/home"
         />
-<!--    <item android:title="Wallet"-->
+<!--    <item android:title="Balance"-->
 <!--        android:id="@+id/navwallet"-->
 <!--        android:icon="@drawable/wallet_nav"-->
 <!--        android:layout_width="40dp"-->

@@ -14,8 +14,8 @@ public class ReferralViewHolder extends RecyclerView.ViewHolder {
     TextView textView;
     public ReferralViewHolder(@NonNull View itemView) {
         super(itemView);
-        imageView=itemView.findViewById(R.id.referralimg);
-        textView=itemView.findViewById(R.id.referralUsername);
+        imageView=itemView.findViewById(R.id.userAvatar);
+        textView=itemView.findViewById(R.id.userName);
     }
 
 }

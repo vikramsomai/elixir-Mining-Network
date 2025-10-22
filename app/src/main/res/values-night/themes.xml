@@ -1,20 +1,28 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Patra" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <item name="android:statusBarColor">@color/white</item>
-        <item name="android:windowLightStatusBar">true</item>
+
+    <!-- Light Theme -->
+    <style name="Base.Theme.Patra" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Brand colors -->
         <item name="colorPrimary">@color/green</item>
         <item name="colorPrimaryVariant">@color/green</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/green</item>
         <item name="colorSecondaryVariant">@color/green</item>
         <item name="colorOnSecondary">@color/black</item>
 
+        <!-- Transparent system bars for edge-to-edge layout -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Optional (depends on your layout contrast) -->
+        <item name="android:windowLightStatusBar">true</item>
     </style>
-    <style name="Theme.Patra.Dark" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:statusBarColor">@color/cardBackground</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
+    <!-- Dark Theme -->
+    <style name="Theme.Patra.Dark" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
+
 </resources>

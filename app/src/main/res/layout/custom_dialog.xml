@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:padding="20dp"
+    android:padding="24dp"
     android:background="@drawable/rounded__card_shape"
     android:orientation="vertical">
 
@@ -11,37 +11,47 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Custom Dialog"
-        android:textSize="18sp"
+        android:textSize="20sp"
+        android:textColor="@color/black"
         android:textStyle="bold"
-
-        android:paddingBottom="10dp" />
+        android:paddingBottom="16dp" />
 
     <TextView
         android:id="@+id/dialogMessage"
         android:layout_width="wrap_content"
+        android:textColor="@color/black"
         android:layout_height="wrap_content"
         android:text="This is a custom dialog example."
-        android:textSize="16sp" />
+        android:textSize="16sp"
+        android:alpha="0.9"
+        android:lineSpacingExtra="4dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="end"
-        android:paddingTop="20dp">
+        android:paddingTop="24dp">
 
         <Button
             android:id="@+id/cancelButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No" />
+            android:text="No"
+            android:textColor="@color/white"
+            android:backgroundTint="#424242"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp" />
 
         <Button
             android:id="@+id/okButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Yes"
-            android:layout_marginStart="10dp"/>
+            android:textColor="@color/white"
+            android:backgroundTint="@color/gold"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:layout_marginStart="16dp"/>
     </LinearLayout>
-
 </LinearLayout>

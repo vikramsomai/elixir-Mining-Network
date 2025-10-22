@@ -1,33 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-
+    android:background="@color/backgroundColor"
     tools:context="network.lynx.app.MainActivity">
 
     <FrameLayout
         android:id="@+id/framelayout"
-        android:background="@color/backgroundColor"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1"
- />
+        android:layout_above="@+id/bottom_container"
+        android:background="@color/backgroundColor" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomview"
+    <!-- Bottom Navigation Container -->
+    <RelativeLayout
+        android:id="@+id/bottom_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bottom_background"
-        app:itemBackground="@drawable/bottom_background"
-        app:itemTextColor="@color/white"
-        app:itemIconTint="@color/colorPrimary"
-        android:paddingBottom="4dp"
-        app:itemPaddingBottom="0dp"
-        style="@style/CustomBottomNavigationView"
-        app:menu="@menu/bottom_nav_menu"
-        app:itemIconSize="30dp"/>
-</LinearLayout>
+        android:layout_alignParentBottom="true"
+        android:background="@color/backgroundColor"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp">
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomview"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/backgroundColor"
+            android:elevation="0dp"
+            app:itemBackground="@android:color/transparent"
+            app:itemIconSize="24dp"
+            app:itemIconTint="@drawable/nav_icon_tint"
+            app:itemPaddingBottom="4dp"
+            app:itemPaddingTop="8dp"
+            app:itemTextColor="@drawable/nav_text_color"
+            app:labelVisibilityMode="labeled"
+            app:itemTextAppearanceActive="@style/BottomNavTextActive"
+            app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
+            app:menu="@menu/bottom_nav_menu" />
+
+    </RelativeLayout>
+
+</RelativeLayout>

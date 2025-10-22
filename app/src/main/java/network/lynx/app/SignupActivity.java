@@ -32,14 +32,18 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class SignupActivity extends AppCompatActivity {
-    private EditText email, username, password;
+    private EditText email, username, password,referral;
     private CheckBox termsCheckbox;
     private static final int RC_SIGN_IN = 9001;
     private FirebaseAuth mAuth;
@@ -54,6 +58,7 @@ public class SignupActivity extends AppCompatActivity {
         email = findViewById(R.id.email);
         password = findViewById(R.id.password);
         username = findViewById(R.id.username);
+        referral= findViewById(R.id.referral);
         termsCheckbox = findViewById(R.id.termsCheckBox);
         TextView login = findViewById(R.id.loginid);
 
@@ -85,7 +90,7 @@ public class SignupActivity extends AppCompatActivity {
                 firebaseAuthWithGoogle(account.getIdToken());
             } catch (ApiException e) {
                 Log.w("GoogleSignIn", "Google sign in failed", e);
-                Toast.makeText(this, "Google Sign-In Failed", Toast.LENGTH_SHORT).show();
+                ToastUtils.showInfo(this, "Google Sign-In Failed");
             }
         }
     }
@@ -104,10 +109,11 @@ public class SignupActivity extends AppCompatActivity {
                             SharedPreferences.Editor editor = getSharedPreferences("userData", Context.MODE_PRIVATE).edit();
                             editor.putString("userid", user.getUid());
                             editor.putString("username", user.getDisplayName());
+                            editor.putString("profilePicUrl", user.getPhotoUrl()!=null?user.getPhotoUrl().toString():"");
                             editor.putBoolean("isNewUser", true);
                             editor.apply();
 
-                            Toast.makeText(this, "Google Sign-In Successful", Toast.LENGTH_SHORT).show();
+                            ToastUtils.showInfo(this, "Google Sign-In Successful");
 
                             // Navigate to ReferralActivity
                             Intent intent = new Intent(SignupActivity.this, ReferralActivity.class);
@@ -117,7 +123,7 @@ public class SignupActivity extends AppCompatActivity {
                         }
                     } else {
                         Log.w("GoogleSignIn", "Sign in with credential failed", task.getException());
-                        Toast.makeText(this, "Authentication Failed", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showInfo(this, "Authentication Failed");
                     }
                 });
     }
@@ -128,13 +134,14 @@ public class SignupActivity extends AppCompatActivity {
         String edit_email = email.getText().toString().trim();
         String edit_password = password.getText().toString().trim();
         String edit_username = username.getText().toString().trim();
+        String edit_referral = referral.getText().toString().trim(); // Get referral code
 
         if (TextUtils.isEmpty(edit_username) || TextUtils.isEmpty(edit_email) || TextUtils.isEmpty(edit_password)) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Please fill in all fields");
             return;
         }
         if (!termsCheckbox.isChecked()) {
-            Toast.makeText(this, "Please accept the terms and conditions", Toast.LENGTH_SHORT).show();
+            ToastUtils.showInfo(this, "Please accept the terms and conditions");
             return;
         }
 
@@ -145,18 +152,86 @@ public class SignupActivity extends AppCompatActivity {
                         if (user != null) {
                             user.sendEmailVerification().addOnCompleteListener(verificationTask -> {
                                 if (verificationTask.isSuccessful()) {
+                                    // Save user to database
+                                    saveUserToDatabase(user, edit_username);
 
-                                    saveUserToDatabase(user,user.getDisplayName());
-                                    Toast.makeText(this, "Verification email sent! Please check your inbox.", Toast.LENGTH_LONG).show();
+                                    // Save to SharedPreferences
+                                    SharedPreferences.Editor editor = getSharedPreferences("userData", Context.MODE_PRIVATE).edit();
+                                    editor.putString("userid", user.getUid());
+                                    editor.putString("username", edit_username);
+                                    editor.putString("email", edit_email);
+                                    editor.apply();
+
+                                    // Process referral code if provided
+                                    if (!TextUtils.isEmpty(edit_referral)) {
+                                        processReferralCode(user.getUid(), edit_username, edit_referral);
+                                    } else {
+                                        // No referral code, go directly to MainActivity
+                                        ToastUtils.showInfo(this, "Verification email sent! Please check your inbox.");
+                                        startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                                        finish();
+                                    }
                                 } else {
                                     Log.e(TAG, "Email verification failed", verificationTask.getException());
-                                    Toast.makeText(this, "Failed to send verification email.", Toast.LENGTH_SHORT).show();
+                                    ToastUtils.showInfo(this, "Failed to send verification email.");
                                 }
                             });
                         }
                     } else {
                         Log.w(TAG, "Signup failed", task.getException());
-                        Toast.makeText(this, "Signup failed. Try again.", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showInfo(this, "Signup failed. Try again.");
+                    }
+                });
+    }
+
+    // Add this new method to process referral codes
+    private void processReferralCode(String userId, String username, String referralCode) {
+        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
+
+        usersRef.orderByChild("referralCode").equalTo(referralCode)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        boolean referralApplied = false;
+                        if (dataSnapshot.exists()) {
+                            for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                                String referrerUserId = snapshot.getKey();
+
+                                // Update referrer's data
+                                DatabaseReference referrerRef = usersRef.child(referrerUserId);
+
+                                Map<String, Object> referralData = new HashMap<>();
+                                referralData.put("refer_UserId", userId);
+                                referralData.put("refer_username", username);
+
+                                referrerRef.child("referrals").push().updateChildren(referralData);
+                                referrerRef.child("referralCount").setValue(ServerValue.increment(1));
+                                referrerRef.child("bonusPoints").setValue(ServerValue.increment(5));
+                                referralApplied = true;
+                                ToastUtils.showInfo(SignupActivity.this, "Referral code applied successfully!");
+                                usersRef.child(referrerUserId).child("totalCoins").setValue(50);
+
+                            }
+                        } else {
+                            Toast.makeText(SignupActivity.this, "Invalid referral code, but account created successfully", Toast.LENGTH_SHORT).show();
+                        }
+                        if (referralApplied) {
+                            usersRef.child(userId).child("totalCoins").setValue(50);
+                            ToastUtils.showInfo(SignupActivity.this, "Referral code applied! 50 coins added.");
+                        } else {
+                            ToastUtils.showInfo(SignupActivity.this, "Invalid referral code, but account created successfully");
+                        }
+
+                        // Regardless of referral code validity, proceed to MainActivity
+                        startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                        finish();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        ToastUtils.showInfo(SignupActivity.this, "Error processing referral code");
+                        startActivity(new Intent(SignupActivity.this, MainActivity.class));
+                        finish();
                     }
                 });
     }

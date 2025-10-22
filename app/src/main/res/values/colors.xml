@@ -12,9 +12,9 @@
     <color name="card1">#88cf98</color>
     <color name="card2">#abe2c1</color>
     <color name="card3">#f5ab79</color>
-<color name="forgroundColor">#1E2237</color>
+    <color name="forgroundColor">#1E2237</color>
     <color name="highlight_color">#E0E0E0</color>
-    <color name="white">#fff</color>
+<!--    <color name="white">#fff</color>-->
     <color name="gold_gradient_start">#FFD700</color>
     <color name="gold_gradient_end">#FFA500</color>
     <color name="card_background">#1A2B3C</color>
@@ -32,7 +32,12 @@
     <color name="green">#4CAF50</color>
     <color name="darkPrimary">#2D2D2D</color>
 
-
+    <color name="lightBackground">#F8F9FA</color>
+    <!-- Navigation colors -->
+    <color name="navIconActive">#3B82F6</color>
+    <color name="navIconInactive">#9CA3AF</color>
+    <color name="navTextActive">#3B82F6</color>
+    <color name="navTextInactive">#9CA3AF</color>
 
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
@@ -43,12 +48,85 @@
     <color name="black">#FF000000</color>
 
 
-        <color name="backgroundColor">#1E2237</color>
-        <color name="cardBackground">#252A3F</color>
+<!--        <color name="backgroundColor">#0E121B</color>-->
+<!--        <color name="cardBackground">#0E121B</color>-->
         <color name="primaryText">#FFFFFF</color>
         <color name="secondaryText">#FFFFFF80</color>
         <color name="accentGold">#FFD700</color>
         <color name="buttonText">#121212</color>
         <color name="rippleGold">#E6C200</color>
+    <color name="primary_color">#2196F3</color>
+    <color name="primary_color_dark">#1976D2</color>
+    <color name="primary_color_disabled">#BBDEFB</color>
 
+    <!-- Secondary Colors -->
+    <color name="secondary_color">#F5F5F5</color>
+    <color name="secondary_color_pressed">#E0E0E0</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+
+    <!-- Border Colors -->
+    <color name="border_color">#E0E0E0</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#FAFAFA</color>
+
+    <!-- Success/Error Colors -->
+    <color name="success_color">#4CAF50</color>
+    <color name="error_color">#F44336</color>
+    <color name="warning_color">#FF9800</color>
+
+
+    <!-- Shadow Colors -->
+    <color name="text_shadow">#80000000</color>
+    <color name="flame_shadow">#80ff6b35</color>
+
+        <color name="white">#FFFFFF</color>
+
+
+    <color name="backgroundColor">#111827</color>
+    <color name="cardBackground">#1F2937</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#9CA3AF</color>
+    <color name="accent">#3B82F6</color>
+    <color name="iconBackground">#374151</color>
+
+    <color name="gradientBlueStart">#3B82F6</color>
+    <color name="gradientBlueEnd">#1D4ED8</color>
+    <color name="gradientOrangeStart">#F97316</color>
+    <color name="gradientOrangeEnd">#EA580C</color>
+    <color name="badgeRed">#EF4444</color>
+
+
+    <!-- Material Design 3 Color Tokens -->
+    <color name="primary">#6750A4</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#EADDFF</color>
+    <color name="on_primary_container">#21005D</color>
+
+    <color name="surface">#FFFBFE</color>
+    <color name="on_surface">#1C1B1F</color>
+    <color name="surface_variant">#E7E0EC</color>
+    <color name="on_surface_variant">#49454F</color>
+    <color name="surface_container">#F3EDF7</color>
+
+    <color name="outline">#79747E</color>
+    <color name="outline_variant">#CAC4D0</color>
+    <color name="stroke_color">#E6E1E5</color>
+
+    <!-- Semantic Colors -->
+    <color name="success">#146C2E</color>
+    <color name="success_container">#A7F3B8</color>
+    <color name="on_success_container">#002106</color>
+
+    <color name="warning">#B3261E</color>
+    <color name="warning_container">#F9DEDC</color>
+
+    <!-- Dark Theme Colors -->
+    <color name="primary_dark">#D0BCFF</color>
+    <color name="surface_dark">#141218</color>
+    <color name="on_surface_dark">#E6E1E5</color>
+    <color name="surface_container_dark">#211F26</color>
 </resources>

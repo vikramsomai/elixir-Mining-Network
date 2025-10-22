@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -26,30 +28,32 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.HashMap;
 import java.util.Map;
 
-
-
 public class ReferralActivity extends AppCompatActivity {
 
     MaterialButton continues;
     EditText referralEdit;
     SharedPreferences sharedPreferences;
     DatabaseReference databaseReference;
-    String userId, name,profilePicUrl;
+    String userId, name, profilePicUrl;
     TextView skip;
+    LottieAnimationView referralGiftAnim;
+
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Enable Edge-to-Edge display
         setContentView(R.layout.activity_referral);
 
         sharedPreferences = getSharedPreferences("userData", Context.MODE_PRIVATE);
         userId = sharedPreferences.getString("userid", null);
         name = sharedPreferences.getString("username", null);
-        profilePicUrl=sharedPreferences.getString("profilePicUrl",null);
+        profilePicUrl = sharedPreferences.getString("profilePicUrl", null);
+
         continues = findViewById(R.id.continueBtn);
         referralEdit = findViewById(R.id.referralEdit);
-        skip=findViewById(R.id.skip);
+        skip = findViewById(R.id.skip);
+        referralGiftAnim = findViewById(R.id.referralGiftAnim);
+
         if (userId == null) {
             Intent i = new Intent(ReferralActivity.this, LoginActivity.class);
             startActivity(i);
@@ -57,52 +61,61 @@ public class ReferralActivity extends AppCompatActivity {
             return;
         }
 
-        // Use consistent "users" node (all lowercase)
+        // Animate root view on load
+        View rootView = findViewById(R.id.main);
+        rootView.setAlpha(0f);
+        rootView.animate().alpha(1f).setDuration(600).start();
+
+        // Firebase DB
         databaseReference = FirebaseDatabase.getInstance().getReference("users");
 
         continues.setOnClickListener(view -> {
-            // Disable button to prevent multiple clicks
-            continues.setEnabled(false);
-            String enteredReferral = referralEdit.getText().toString().trim();
-            if (enteredReferral.isEmpty()) {
-                Toast.makeText(ReferralActivity.this, "Please enter a referral code", Toast.LENGTH_SHORT).show();
-                continues.setEnabled(true);
-            } else {
-                findReferrer(enteredReferral);
-            }
+            view.animate().scaleX(0.95f).scaleY(0.95f).setDuration(100).withEndAction(() -> {
+                view.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
+                String enteredReferral = referralEdit.getText().toString().trim();
+                continues.setEnabled(false);
+                if (enteredReferral.isEmpty()) {
+                    Toast.makeText(ReferralActivity.this, "Please enter a referral code", Toast.LENGTH_SHORT).show();
+                    continues.setEnabled(true);
+                } else {
+                    findReferrer(enteredReferral);
+                }
+            }).start();
         });
-        skip.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(ReferralActivity.this, MainActivity.class);
-                startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-                finish();
-            }
+
+        skip.setOnClickListener(view -> {
+            Intent intent = new Intent(ReferralActivity.this, MainActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            finish();
         });
+
+        // Optional Lottie trigger
+        referralGiftAnim.playAnimation();
     }
 
     public void onReferralFound(String referrerUserId) {
-        // Get a reference to the referrer's data.
         DatabaseReference referrerRef = databaseReference.child(referrerUserId);
-        // Get a reference to the current user's data.
-        DatabaseReference currentUserRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+        DatabaseReference currentUserRef = databaseReference.child(userId);
 
-        // Push referral details under the referrer's "referrals" node.
         currentUserRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String referUser = snapshot.child("username").getValue(String.class);
                 if (referUser == null) referUser = "Unknown";
+
                 Map<String, Object> updates = new HashMap<>();
                 updates.put("refer_UserId", userId);
                 updates.put("refer_username", referUser);
+
                 referrerRef.child("referrals").push().updateChildren(updates);
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError error) { }
         });
-        // Increment referral count and bonus points.
+
+        // Update counts and bonuses
         referrerRef.child("referralCount").setValue(ServerValue.increment(1));
         referrerRef.child("bonusPoints").setValue(ServerValue.increment(5));
 
@@ -112,7 +125,6 @@ public class ReferralActivity extends AppCompatActivity {
     public void onReferralNotFound() {
         Toast.makeText(this, "Referral code not found", Toast.LENGTH_SHORT).show();
         continues.setEnabled(true);
-        animateAndProceed();
     }
 
     public void findReferrer(String referralCode) {
@@ -130,6 +142,7 @@ public class ReferralActivity extends AppCompatActivity {
                             onReferralNotFound();
                         }
                     }
+
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                         Toast.makeText(ReferralActivity.this, "Error retrieving referral info", Toast.LENGTH_SHORT).show();
@@ -138,14 +151,10 @@ public class ReferralActivity extends AppCompatActivity {
                 });
     }
 
-    // Animate the view (fade out) then proceed to MainActivity.
     private void animateAndProceed() {
         View rootView = findViewById(R.id.main);
         rootView.animate().alpha(0f).setDuration(300).withEndAction(() -> {
-            // Clear the isNewUser flag so subsequent logins go directly to MainActivity.
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("isNewUser", false);
-            editor.apply();
+            sharedPreferences.edit().putBoolean("isNewUser", false).apply();
             Intent intent = new Intent(ReferralActivity.this, MainActivity.class);
             startActivity(intent);
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
@@ -153,7 +162,6 @@ public class ReferralActivity extends AppCompatActivity {
         }).start();
     }
 
-    // Optional: Copy referral code to clipboard if needed.
     private void copyToClipboard(String text) {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("Referral Code", text);
