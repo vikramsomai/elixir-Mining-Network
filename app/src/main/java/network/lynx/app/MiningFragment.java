@@ -1074,11 +1074,23 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     public void onDestroyView() {
         super.onDestroyView();
         try {
+            // BUG FIX: Properly clean up handler
             if (handler != null) {
-                handler.removeCallbacksAndMessages(null);
+                try {
+                    handler.removeCallbacksAndMessages(null);
+                    Log.d(TAG, "Handler callbacks removed");
+                } catch (Exception e) {
+                    Log.w(TAG, "Error removing handler callbacks", e);
+                }
             }
+            // BUG FIX: Remove boost listener
             if (boostManager != null) {
-                boostManager.removeBoostChangeListener(this);
+                try {
+                    boostManager.removeBoostChangeListener(this);
+                    Log.d(TAG, "Boost change listener removed");
+                } catch (Exception e) {
+                    Log.w(TAG, "Error removing boost listener", e);
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onDestroyView", e);

@@ -126,6 +126,12 @@ public class LoginActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == RC_SIGN_IN) {
+            // BUG FIX: Add null check for data
+            if (data == null) {
+                Log.e(TAG, "Google Sign-in returned null data");
+                ToastUtils.showError(this, "Google Sign-in failed: No data returned");
+                return;
+            }
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);
         }

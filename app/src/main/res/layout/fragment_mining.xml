@@ -76,7 +76,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Stats Grid - Side by Side Cards -->
+        <!-- Stats Grid - Side by Side Cards with improved styling -->
         <LinearLayout
             android:id="@+id/statsGrid"
             android:layout_width="0dp"
@@ -89,7 +89,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- Mining Time Left Card -->
+            <!-- Mining Time Left Card - Enhanced -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/timeLeftCard"
                 android:layout_width="0dp"
@@ -97,7 +97,9 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
+                app:cardElevation="8dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#FFFFFF15"
                 app:cardBackgroundColor="@color/cardBackground">
 
                 <LinearLayout
@@ -125,7 +127,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_clock"
-                            android:tint="@color/white"
+                            android:tint="@color/gold"
                             android:layout_marginEnd="8dp" />
 
                         <TextView
@@ -135,13 +137,13 @@
                             android:text="23:59:52"
                             android:textSize="16sp"
                             android:textStyle="bold"
-                            android:textColor="@color/white"
+                            android:textColor="@color/gold"
                             android:fontFamily="monospace" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Mining Rate Card -->
+            <!-- Mining Rate Card - Enhanced -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/miningRateCard"
                 android:layout_width="0dp"
@@ -149,7 +151,9 @@
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
+                app:cardElevation="8dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#FFFFFF15"
                 app:cardBackgroundColor="@color/cardBackground">
 
                 <LinearLayout
@@ -176,7 +180,7 @@
                         <ImageView
                             android:layout_width="20dp"
                             android:layout_height="20dp"
-                            android:tint="@color/white"
+                            android:tint="@color/gold"
                             android:src="@drawable/ic_zap"
                             android:layout_marginEnd="8dp" />
 
@@ -187,13 +191,13 @@
                             android:text="0.005 LYX"
                             android:textSize="16sp"
                             android:textStyle="bold"
-                            android:textColor="@color/white" />
+                            android:textColor="@color/gold" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Boost Card -->
+        <!-- Boost Card - Enhanced with gradient and better styling -->
         <androidx.cardview.widget.CardView
             android:id="@+id/boost"
             android:layout_width="0dp"
@@ -201,7 +205,7 @@
             android:layout_marginHorizontal="24dp"
             android:layout_marginTop="32dp"
             app:cardCornerRadius="25dp"
-            app:cardElevation="0dp"
+            app:cardElevation="12dp"
             app:cardBackgroundColor="@color/gold"
             app:layout_constraintTop_toBottomOf="@id/statsGrid"
             app:layout_constraintStart_toStartOf="parent"
@@ -214,11 +218,18 @@
                 android:gravity="center"
                 android:padding="20dp">
 
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_zap"
+                    android:tint="@color/black"
+                    android:layout_marginEnd="8dp" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Watch Ad for Boost"
-                    android:textColor="@color/white"
+                    android:textColor="@color/black"
                     android:textSize="18sp"
                     android:textStyle="bold" />
             </LinearLayout>

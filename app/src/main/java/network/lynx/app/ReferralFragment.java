@@ -35,6 +35,8 @@ public class ReferralFragment extends Fragment {
     private double totalCommissionEarned = 0.0;
     private double totalCoins = 0.0;
     private boolean isBoostActive = false;
+    private boolean hasUpdatedCoinsThisSession = false; // BUG FIX: Prevent double coin counting
+    private ValueEventListener referralDataListener; // BUG FIX: Track listener for cleanup
 
     @Nullable
     @Override
@@ -146,7 +148,12 @@ public class ReferralFragment extends Fragment {
             return;
         }
 
-        userRef.addValueEventListener(new ValueEventListener() {
+        // BUG FIX: Remove old listener to prevent duplicate updates
+        if (referralDataListener != null) {
+            userRef.removeEventListener(referralDataListener);
+        }
+
+        referralDataListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!isAdded()) {
@@ -415,5 +422,10 @@ public class ReferralFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         Log.d(TAG, "ReferralFragment destroyed");
+        // BUG FIX: Remove listener to prevent memory leaks
+        if (userRef != null && referralDataListener != null) {
+            userRef.removeEventListener(referralDataListener);
+            Log.d(TAG, "Referral data listener removed");
+        }
     }
 }

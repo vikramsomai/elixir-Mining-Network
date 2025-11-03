@@ -984,21 +984,37 @@ public class HomeFragment extends Fragment {
         super.onDestroyView();
         Log.d(TAG, "HomeFragment onDestroyView");
         isProcessingReward = false;
+        // BUG FIX: Properly cancel countdown timer
         if (countdownTimer != null) {
-            countdownTimer.cancel();
+            try {
+                countdownTimer.cancel();
+            } catch (Exception e) {
+                Log.w(TAG, "Error cancelling countdown timer", e);
+            }
             countdownTimer = null;
         }
+        // BUG FIX: Properly clean up banner handler
         if (bannerHandler != null) {
-            bannerHandler.removeCallbacksAndMessages(null);
+            try {
+                bannerHandler.removeCallbacksAndMessages(null);
+            } catch (Exception e) {
+                Log.w(TAG, "Error removing banner handler callbacks", e);
+            }
             bannerHandler = null;
         }
         bannerRunnable = null;
         // Remove tracked realtime listeners to avoid traffic/leaks
         try {
-            if (databaseReference != null && userValueListener != null) databaseReference.removeEventListener(userValueListener);
+            if (databaseReference != null && userValueListener != null) {
+                databaseReference.removeEventListener(userValueListener);
+                Log.d(TAG, "User value listener removed");
+            }
         } catch (Exception e) { Log.w(TAG, "Failed to remove user listener", e); }
         try {
-            if (bannersRef != null && bannersValueListener != null) bannersRef.removeEventListener(bannersValueListener);
+            if (bannersRef != null && bannersValueListener != null) {
+                bannersRef.removeEventListener(bannersValueListener);
+                Log.d(TAG, "Banners value listener removed");
+            }
         } catch (Exception e) { Log.w(TAG, "Failed to remove banners listener", e); }
         view = null;
     }

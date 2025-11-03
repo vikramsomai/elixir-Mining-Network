@@ -13,15 +13,17 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Profile Section - Improved with elevation and better spacing -->
+        <!-- Profile Section - Enhanced with gradient and better spacing -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/profileCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             app:cardBackgroundColor="@color/cardBackground"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="8dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#FFFFFF15"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
