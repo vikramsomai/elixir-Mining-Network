@@ -2,6 +2,8 @@ package network.lynx.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -42,6 +44,7 @@ public class BoostManager {
 
     // Listeners for boost changes
     private List<BoostChangeListener> listeners = new ArrayList<>();
+    private Handler handler;
 
     public interface BoostChangeListener {
         void onBoostStateChanged(float currentMiningRate, String boostInfo);
@@ -50,6 +53,7 @@ public class BoostManager {
 
     private BoostManager(Context context) {
         this.context = context.getApplicationContext();
+        this.handler = new Handler(Looper.getMainLooper());
         initializeBoostManager();
     }
 
@@ -69,12 +73,19 @@ public class BoostManager {
 
     private void initializeBoostManager() {
         try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.e(TAG, "User not authenticated during BoostManager initialization");
+                return;
+            }
+
             userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             prefs = context.getSharedPreferences("BoostManager_" + userId, Context.MODE_PRIVATE);
             userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
             loadCachedBoostStates();
             loadBoostStatesFromFirebase();
+
+            Log.d(TAG, "BoostManager initialized successfully for user: " + userId);
         } catch (Exception e) {
             Log.e(TAG, "Error initializing BoostManager", e);
         }
@@ -114,6 +125,11 @@ public class BoostManager {
     }
 
     private void loadBoostStatesFromFirebase() {
+        if (userRef == null) {
+            Log.e(TAG, "User reference is null, cannot load boost states");
+            return;
+        }
+
         // Load permanent boosts
         userRef.child("permanentBoosts").addValueEventListener(new ValueEventListener() {
             @Override
@@ -146,6 +162,8 @@ public class BoostManager {
                     notifyPermanentBoostChanged();
                 }
                 notifyBoostStateChanged();
+
+                Log.d(TAG, "Permanent boosts loaded: " + hasPermanentBoost + " (x" + permanentBoostMultiplier + ")");
             }
 
             @Override
@@ -189,6 +207,8 @@ public class BoostManager {
                         deactivateDailyCheckinBoost();
                     }
                 }
+
+                Log.d(TAG, "Active boosts loaded from Firebase");
             }
 
             @Override
@@ -232,6 +252,11 @@ public class BoostManager {
 
     public float getCurrentMiningRatePerHour() {
         return getCurrentMiningRatePerSecond() * 3600f;
+    }
+
+    // FIXED: Added missing method for MiningFragment compatibility
+    public float getCurrentMiningRate() {
+        return getCurrentMiningRatePerSecond();
     }
 
     public float calculateMiningAmount(long durationMillis) {
@@ -310,8 +335,7 @@ public class BoostManager {
     }
 
     private void scheduleBoostDeactivation(long delay, Runnable deactivationTask) {
-        if (delay > 0) {
-            android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        if (delay > 0 && handler != null) {
             handler.postDelayed(deactivationTask, delay);
         }
     }
@@ -434,7 +458,7 @@ public class BoostManager {
     }
 
     /**
-     * Get detailed rate breakdown for debugging - THIS WAS THE MISSING METHOD
+     * Get detailed rate breakdown for debugging
      */
     public String getRateBreakdown() {
         StringBuilder breakdown = new StringBuilder();
@@ -490,6 +514,15 @@ public class BoostManager {
 
     public void removeBoostChangeListener(BoostChangeListener listener) {
         listeners.remove(listener);
+    }
+
+    // FIXED: Added cleanup method for ViewModel compatibility
+    public void cleanup() {
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        listeners.clear();
+        Log.d(TAG, "BoostManager cleaned up");
     }
 
     private void notifyBoostStateChanged() {

@@ -244,7 +244,7 @@ public class ReferralFragment extends Fragment {
                     ToastUtils.showError(getContext(), "Failed to load referral data");
                 }
             }
-        });
+        };
     }
 
     // NEW: Method to update user's total coins with referral income

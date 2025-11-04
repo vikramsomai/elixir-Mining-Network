@@ -69,13 +69,80 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     // Managers
     private AdManager adManager;
     private BoostManager boostManager;
-    private TaskManager taskManager; // NEW: TaskManager integration
+    private TaskManager taskManager;
+
+    // Fix: Track if we're currently updating UI to prevent multiple runnables
+    private boolean isUpdatingUI = false;
+    private final Runnable uiUpdateRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded() || handler == null) {
+                isUpdatingUI = false;
+                return;
+            }
+
+            if (isMiningActive && startTime > 0) {
+                long currentTime = System.currentTimeMillis();
+                long elapsed = currentTime - startTime;
+                long remaining = MINING_DURATION - elapsed;
+
+                if (remaining <= 0) {
+                    isMiningActive = false;
+                    isUpdatingUI = false;
+                    double tokens = calculateTokens(MINING_DURATION);
+                    double finalTotal = initialTotalCoins + tokens;
+                    if (counterTextView != null) {
+                        counterTextView.setText(formatLargeNumber(finalTotal));
+                    }
+                    if (miningTimerTextView != null) {
+                        miningTimerTextView.setText("00:00:00");
+                    }
+                    if (miningPer != null) {
+                        miningPer.setText("100.00%");
+                    }
+                    saveMinedTokens(tokens);
+
+                    if (miningRef != null) {
+                        miningRef.child("isMiningActive").setValue(false);
+                        miningRef.child("startTime").setValue(0);
+                    }
+                    showMiningCompleteNotification();
+                } else {
+                    double tokens = calculateTokens(elapsed);
+                    double currentTotal = initialTotalCoins + tokens;
+                    if (counterTextView != null) {
+                        counterTextView.setText(formatLargeNumber(currentTotal));
+                    }
+                    if (miningTimerTextView != null) {
+                        miningTimerTextView.setText(formatTime(remaining));
+                    }
+                    float progress = ((float) elapsed / MINING_DURATION) * 100;
+                    if (miningPer != null) {
+                        miningPer.setText(String.format("%.2f%%", progress));
+                    }
+
+                    if (handler != null && isUpdatingUI) {
+                        handler.postDelayed(this, 1000);
+                    }
+                }
+            } else {
+                isUpdatingUI = false;
+            }
+        }
+    };
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "MiningFragment onCreate");
+    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_mining, container, false);
+        Log.d(TAG, "MiningFragment onCreateView");
 
         initializeViews(view);
         initializeManagers();
@@ -95,10 +162,20 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         return view;
     }
 
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Log.d(TAG, "MiningFragment onViewCreated");
+    }
+
     // Helper method to safely get context
     private Context getSafeContext() {
         if (isAdded() && getContext() != null) {
             return getContext();
+        }
+        // Return application context as fallback
+        if (getActivity() != null) {
+            return getActivity().getApplicationContext();
         }
         return null;
     }
@@ -113,34 +190,46 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     }
 
     private void initializeViews(View view) {
-        counterTextView = view.findViewById(R.id.balance);
-        miningTimerTextView = view.findViewById(R.id.timer);
-        startButton = view.findViewById(R.id.miningblow);
-        miningRate = view.findViewById(R.id.miningrate);
-        miningPer = view.findViewById(R.id.miningPer);
-//        invite = view.findViewById(R.id.invite);
-        boostCard = view.findViewById(R.id.boost);
-        handler = new Handler(Looper.getMainLooper());
+        try {
+            counterTextView = view.findViewById(R.id.balance);
+            miningTimerTextView = view.findViewById(R.id.timer);
+            startButton = view.findViewById(R.id.miningblow);
+            miningRate = view.findViewById(R.id.miningrate);
+            miningPer = view.findViewById(R.id.miningPer);
+            // invite = view.findViewById(R.id.invite); // Commented out as per original
+            boostCard = view.findViewById(R.id.boost);
+            handler = new Handler(Looper.getMainLooper());
+
+            Log.d(TAG, "Views initialized successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing views", e);
+        }
     }
 
     private void initializeManagers() {
         try {
+            Context context = getSafeContext();
+            if (context == null) {
+                Log.w(TAG, "Context is null during manager initialization");
+                return;
+            }
+
             // Initialize AdManager
             adManager = AdManager.getInstance();
 
             // Initialize BoostManager
-            Context context = getSafeContext();
-            if (context != null) {
-                boostManager = BoostManager.getInstance(context);
+            boostManager = BoostManager.getInstance(context);
+            if (boostManager != null) {
                 boostManager.addBoostChangeListener(this);
                 Log.d(TAG, "BoostManager initialized successfully");
+            }
 
-                // NEW: Initialize TaskManager
-                String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                if (userID != null) {
-                    taskManager = new TaskManager(context, userID);
-                    Log.d(TAG, "TaskManager initialized successfully");
-                }
+            // Initialize TaskManager
+            String userID = FirebaseAuth.getInstance().getCurrentUser() != null ?
+                    FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+            if (userID != null) {
+                taskManager = new TaskManager(context, userID);
+                Log.d(TAG, "TaskManager initialized successfully");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing managers", e);
@@ -149,12 +238,18 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
 
     private void initializePreferences() {
         try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.e(TAG, "User not authenticated");
+                return;
+            }
+
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             prefsName = "TokenPrefs_" + userID;
             Context context = getSafeContext();
             if (context != null) {
                 tokenPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
                 miningRef = FirebaseDatabase.getInstance().getReference("users").child(userID).child("mining");
+                Log.d(TAG, "Preferences initialized for user: " + userID);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing preferences", e);
@@ -165,9 +260,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         try {
             Context context = getSafeContext();
             if (context != null && adManager != null) {
-                // Smart preload based on user behavior
                 adManager.smartPreloadAd(context, AdManager.AD_UNIT_MINING);
                 adManager.smartPreloadAd(context, AdManager.AD_UNIT_BOOST);
+                Log.d(TAG, "Ads preloaded successfully");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error preloading ads", e);
@@ -175,31 +270,39 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     }
 
     private void setupClickListeners() {
-        if (invite != null) {
-            invite.setOnClickListener(v -> shareAppInvite());
+        try {
+            if (invite != null) {
+                invite.setOnClickListener(v -> shareAppInvite());
+            }
+
+            if (startButton != null) {
+                startButton.setOnClickListener(v -> {
+                    if (!isMiningActive) {
+                        showMiningConsentDialog();
+                    } else {
+                        Context context = getSafeContext();
+                        if (context != null) {
+                            ToastUtils.showInfo(context, "Mining already started");
+                        }
+                    }
+                });
+            }
+
+            if (boostCard != null) {
+                boostCard.setOnClickListener(v -> {
+                    if (isMiningActive) {
+                        showBoostConsentDialog();
+                    } else {
+                        Context context = getSafeContext();
+                        if (context != null) {
+                            ToastUtils.showInfo(context, "Start mining first to boost speed");
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up click listeners", e);
         }
-
-        startButton.setOnClickListener(v -> {
-            if (!isMiningActive) {
-                showMiningConsentDialog();
-            } else {
-                Context context = getSafeContext();
-                if (context != null) {
-                    ToastUtils.showInfo(context, "Mining already started");
-                }
-            }
-        });
-
-        boostCard.setOnClickListener(v -> {
-            if (isMiningActive) {
-                showBoostConsentDialog();
-            } else {
-                Context context = getSafeContext();
-                if (context != null) {
-                    ToastUtils.showInfo(context, "Start mining first to boost speed");
-                }
-            }
-        });
     }
 
     private void showMiningConsentDialog() {
@@ -207,7 +310,6 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         try {
             Context context = getSafeContext();
             if (context != null && adManager != null) {
-                // Record feature usage for smart preloading
                 adManager.recordFeatureUsage(context, AdManager.AD_UNIT_MINING);
 
                 AdConsentManager.showMiningConsentDialog(requireActivity(), new AdConsentManager.ConsentCallback() {
@@ -221,7 +323,6 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                     @Override
                     public void onConsentDenied() {
                         if (isAdded()) {
-                            // Allow slower mining without ad
                             if (boostManager != null) {
                                 boostManager.setAdWatched(false);
                             }
@@ -232,6 +333,11 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             }
         } catch (Exception e) {
             Log.e(TAG, "Error showing mining consent dialog", e);
+            // Fallback: start mining without ad
+            if (boostManager != null) {
+                boostManager.setAdWatched(false);
+            }
+            startMining();
         }
     }
 
@@ -250,7 +356,6 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         try {
             Context context = getSafeContext();
             if (context != null && adManager != null) {
-                // Record feature usage for smart preloading
                 adManager.recordFeatureUsage(context, AdManager.AD_UNIT_BOOST);
 
                 AdConsentManager.showBoostConsentDialog(requireActivity(), new AdConsentManager.ConsentCallback() {
@@ -283,7 +388,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         if (adManager.isAdReady(AdManager.AD_UNIT_MINING)) {
             showMiningRewardedAd();
         } else {
-            startButton.setEnabled(false);
+            if (startButton != null) {
+                startButton.setEnabled(false);
+            }
             Context context = getSafeContext();
             if (context != null) {
                 adManager.loadRewardedAd(context, AdManager.AD_UNIT_MINING, new AdManager.AdLoadCallback() {
@@ -305,7 +412,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                                 boostManager.setAdWatched(false);
                             }
                             startMining();
-                            startButton.setEnabled(true);
+                            if (startButton != null) {
+                                startButton.setEnabled(true);
+                            }
                         }
                     }
                 });
@@ -319,7 +428,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         if (adManager.isAdReady(AdManager.AD_UNIT_BOOST)) {
             showBoostRewardedAd();
         } else {
-            boostCard.setEnabled(false);
+            if (boostCard != null) {
+                boostCard.setEnabled(false);
+            }
             Context context = getSafeContext();
             if (context != null) {
                 adManager.loadRewardedAd(context, AdManager.AD_UNIT_BOOST, new AdManager.AdLoadCallback() {
@@ -337,7 +448,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                             if (ctx != null) {
                                 ToastUtils.showInfo(ctx, "Ad not available. Try again later.");
                             }
-                            boostCard.setEnabled(true);
+                            if (boostCard != null) {
+                                boostCard.setEnabled(true);
+                            }
                         }
                     }
                 });
@@ -348,7 +461,10 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void showMiningRewardedAd() {
         if (!isAdded() || adManager == null) return;
 
-        startButton.setEnabled(false);
+        if (startButton != null) {
+            startButton.setEnabled(false);
+        }
+
         adManager.showRewardedAd(requireActivity(), AdManager.AD_UNIT_MINING, new AdManager.AdShowCallback() {
             @Override
             public void onAdShowed() {
@@ -366,7 +482,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                         boostManager.setAdWatched(false);
                     }
                     startMining();
-                    startButton.setEnabled(true);
+                    if (startButton != null) {
+                        startButton.setEnabled(true);
+                    }
                 }
             }
 
@@ -381,7 +499,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                         boostManager.setAdWatched(false);
                     }
                     startMining();
-                    startButton.setEnabled(true);
+                    if (startButton != null) {
+                        startButton.setEnabled(true);
+                    }
                 }
             }
 
@@ -396,29 +516,29 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                         boostManager.setAdWatched(false);
                     }
                     startMining();
-                    startButton.setEnabled(true);
+                    if (startButton != null) {
+                        startButton.setEnabled(true);
+                    }
                 }
             }
 
             @Override
             public void onUserEarnedReward(com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
                 if (isAdded()) {
-                    // Set ad watched in BoostManager
                     if (boostManager != null) {
                         boostManager.setAdWatched(true);
                     }
 
-                    // NEW: Notify TaskManager that mining ad was watched
                     if (taskManager != null) {
                         taskManager.completeMiningAdTask();
                         Log.d(TAG, "Mining ad watched - synced with TaskManager");
                     }
 
-                    // NEW: Notify BoostActivity to refresh
                     notifyBoostActivityRefresh();
-
                     startMining();
-                    startButton.setEnabled(true);
+                    if (startButton != null) {
+                        startButton.setEnabled(true);
+                    }
                 }
             }
         });
@@ -427,7 +547,10 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void showBoostRewardedAd() {
         if (!isAdded() || adManager == null) return;
 
-        boostCard.setEnabled(false);
+        if (boostCard != null) {
+            boostCard.setEnabled(false);
+        }
+
         adManager.showRewardedAd(requireActivity(), AdManager.AD_UNIT_BOOST, new AdManager.AdShowCallback() {
             @Override
             public void onAdShowed() {
@@ -441,7 +564,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                     if (context != null) {
                         ToastUtils.showInfo(context, "Ad failed to show. Try again later.");
                     }
-                    boostCard.setEnabled(true);
+                    if (boostCard != null) {
+                        boostCard.setEnabled(true);
+                    }
                 }
             }
 
@@ -452,7 +577,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                     if (context != null) {
                         ToastUtils.showInfo(context, "Ad not completed. No boost applied.");
                     }
-                    boostCard.setEnabled(true);
+                    if (boostCard != null) {
+                        boostCard.setEnabled(true);
+                    }
                 }
             }
 
@@ -463,7 +590,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                     if (context != null) {
                         ToastUtils.showInfo(context, "Ad not available. Try again later.");
                     }
-                    boostCard.setEnabled(true);
+                    if (boostCard != null) {
+                        boostCard.setEnabled(true);
+                    }
                 }
             }
 
@@ -471,7 +600,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             public void onUserEarnedReward(com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
                 if (isAdded()) {
                     activateBoost();
-                    boostCard.setEnabled(true);
+                    if (boostCard != null) {
+                        boostCard.setEnabled(true);
+                    }
                 }
             }
         });
@@ -484,7 +615,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
 
             miningViewModel.getTotalCoins().observe(getViewLifecycleOwner(), balance -> {
                 if (balance != null && isAdded()) {
-                    counterTextView.setText(formatLargeNumber(balance));
+                    if (counterTextView != null) {
+                        counterTextView.setText(formatLargeNumber(balance));
+                    }
                     SharedPreferences prefs = getSafeSharedPreferences();
                     if (prefs != null) {
                         prefs.edit().putFloat("totalCoins", balance.floatValue()).apply();
@@ -532,23 +665,39 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             boolean cachedIsMiningActive = prefs.getBoolean("isMiningActive", false);
             long cachedStartTime = prefs.getLong("startTime", 0);
 
-            counterTextView.setText(formatLargeNumber(cachedTotalCoins));
+            if (counterTextView != null) {
+                counterTextView.setText(formatLargeNumber(cachedTotalCoins));
+            }
 
             if (cachedIsMiningActive && cachedStartTime > 0) {
                 long elapsed = System.currentTimeMillis() - cachedStartTime;
                 if (elapsed < MINING_DURATION) {
                     double tokens = calculateTokens(elapsed);
-                    counterTextView.setText(formatLargeNumber(cachedTotalCoins + tokens));
-                    miningTimerTextView.setText(formatTime(MINING_DURATION - elapsed));
+                    if (counterTextView != null) {
+                        counterTextView.setText(formatLargeNumber(cachedTotalCoins + tokens));
+                    }
+                    if (miningTimerTextView != null) {
+                        miningTimerTextView.setText(formatTime(MINING_DURATION - elapsed));
+                    }
                     float progress = ((float) elapsed / MINING_DURATION) * 100;
-                    miningPer.setText(String.format("%.2f%%", progress));
+                    if (miningPer != null) {
+                        miningPer.setText(String.format("%.2f%%", progress));
+                    }
                 } else {
-                    miningTimerTextView.setText("00:00:00");
-                    miningPer.setText("100.00%");
+                    if (miningTimerTextView != null) {
+                        miningTimerTextView.setText("00:00:00");
+                    }
+                    if (miningPer != null) {
+                        miningPer.setText("100.00%");
+                    }
                 }
             } else {
-                miningTimerTextView.setText("00:00:00");
-                miningPer.setText("Start");
+                if (miningTimerTextView != null) {
+                    miningTimerTextView.setText("00:00:00");
+                }
+                if (miningPer != null) {
+                    miningPer.setText("Start");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error loading cached data", e);
@@ -558,13 +707,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void fetchUserData() {
         if (!isAdded()) return;
         try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.e(TAG, "User not authenticated, cannot fetch data");
+                return;
+            }
+
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userID);
 
             userRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    // Check if Fragment is still attached before proceeding
                     if (!isAdded() || getSafeContext() == null) {
                         Log.w(TAG, "Fragment not attached, skipping UI update");
                         return;
@@ -594,9 +747,15 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                                     isMiningActive = false;
                                     double tokens = calculateTokens(MINING_DURATION);
                                     double finalTotal = initialTotalCoins + tokens;
-                                    counterTextView.setText(formatLargeNumber(finalTotal));
-                                    miningTimerTextView.setText("00:00:00");
-                                    miningPer.setText("100.00%");
+                                    if (counterTextView != null) {
+                                        counterTextView.setText(formatLargeNumber(finalTotal));
+                                    }
+                                    if (miningTimerTextView != null) {
+                                        miningTimerTextView.setText("00:00:00");
+                                    }
+                                    if (miningPer != null) {
+                                        miningPer.setText("100.00%");
+                                    }
                                     saveMinedTokens(tokens);
                                     if (miningRef != null) {
                                         miningRef.child("isMiningActive").setValue(false);
@@ -612,13 +771,18 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                         } else {
                             if (isAdded()) {
                                 isMiningActive = false;
-                                miningTimerTextView.setText("00:00:00");
-                                miningPer.setText("Start");
-                                counterTextView.setText(formatLargeNumber(initialTotalCoins));
+                                if (miningTimerTextView != null) {
+                                    miningTimerTextView.setText("00:00:00");
+                                }
+                                if (miningPer != null) {
+                                    miningPer.setText("Start");
+                                }
+                                if (counterTextView != null) {
+                                    counterTextView.setText(formatLargeNumber(initialTotalCoins));
+                                }
                             }
                         }
 
-                        // Safe SharedPreferences update
                         SharedPreferences prefs2 = getSafeSharedPreferences();
                         if (prefs2 != null) {
                             prefs2.edit()
@@ -642,61 +806,41 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     }
 
     private void startUpdatingUI() {
-        if (!isAdded() || handler == null) return;
+        if (!isAdded() || handler == null || isUpdatingUI) return;
 
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (!isAdded()) return;
+        isUpdatingUI = true;
+        handler.post(uiUpdateRunnable);
+    }
 
-                if (isMiningActive && startTime > 0) {
-                    long currentTime = System.currentTimeMillis();
-                    long elapsed = currentTime - startTime;
-                    long remaining = MINING_DURATION - elapsed;
-
-                    if (remaining <= 0) {
-                        isMiningActive = false;
-                        double tokens = calculateTokens(MINING_DURATION);
-                        double finalTotal = initialTotalCoins + tokens;
-                        counterTextView.setText(formatLargeNumber(finalTotal));
-                        miningTimerTextView.setText("00:00:00");
-                        miningPer.setText("100.00%");
-                        saveMinedTokens(tokens);
-
-                        if (miningRef != null) {
-                            miningRef.child("isMiningActive").setValue(false);
-                            miningRef.child("startTime").setValue(0);
-                        }
-                        showMiningCompleteNotification();
-                    } else {
-                        double tokens = calculateTokens(elapsed);
-                        double currentTotal = initialTotalCoins + tokens;
-                        counterTextView.setText(formatLargeNumber(currentTotal));
-                        miningTimerTextView.setText(formatTime(remaining));
-                        float progress = ((float) elapsed / MINING_DURATION) * 100;
-                        miningPer.setText(String.format("%.2f%%", progress));
-
-                        if (handler != null) {
-                            handler.postDelayed(this, 1000);
-                        }
-                    }
-                }
-            }
-        }, 1000);
+    private void stopUpdatingUI() {
+        isUpdatingUI = false;
+        if (handler != null) {
+            handler.removeCallbacks(uiUpdateRunnable);
+        }
     }
 
     private void startMining() {
         if (!isAdded()) return;
 
-        startButton.setEnabled(false);
+        if (startButton != null) {
+            startButton.setEnabled(false);
+        }
+
         try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.e(TAG, "User not authenticated, cannot start mining");
+                if (startButton != null) {
+                    startButton.setEnabled(true);
+                }
+                return;
+            }
+
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userID);
 
             userRef.child("totalcoins").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    // Always check Fragment state first
                     if (!isAdded()) {
                         Log.w(TAG, "Fragment detached during mining start");
                         return;
@@ -710,13 +854,13 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                             miningRef.child("startTime").setValue(startTime);
                             miningRef.child("isMiningActive").setValue(true)
                                     .addOnSuccessListener(aVoid -> {
-                                        // Check Fragment state before UI updates
                                         if (isAdded()) {
                                             isMiningActive = true;
                                             startUpdatingUI();
-                                            startButton.setEnabled(true);
+                                            if (startButton != null) {
+                                                startButton.setEnabled(true);
+                                            }
 
-                                            // Safe context access for WorkManager
                                             Context context = getSafeContext();
                                             if (context != null) {
                                                 Data inputData = new Data.Builder().putLong("startTime", startTime).build();
@@ -730,14 +874,18 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                                     })
                                     .addOnFailureListener(e -> {
                                         if (isAdded()) {
-                                            startButton.setEnabled(true);
+                                            if (startButton != null) {
+                                                startButton.setEnabled(true);
+                                            }
                                             Log.e("Mining", "Failed to start mining", e);
                                         }
                                     });
                         }
                     } catch (Exception e) {
                         if (isAdded()) {
-                            startButton.setEnabled(true);
+                            if (startButton != null) {
+                                startButton.setEnabled(true);
+                            }
                         }
                         Log.e(TAG, "Error in mining start", e);
                     }
@@ -746,26 +894,27 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                 @Override
                 public void onCancelled(@NonNull DatabaseError error) {
                     if (isAdded()) {
-                        startButton.setEnabled(true);
+                        if (startButton != null) {
+                            startButton.setEnabled(true);
+                        }
                     }
                     Log.e("Firebase", "Failed to fetch totalcoins", error.toException());
                 }
             });
         } catch (Exception e) {
-            startButton.setEnabled(true);
+            if (startButton != null) {
+                startButton.setEnabled(true);
+            }
             Log.e(TAG, "Error starting mining", e);
         }
     }
 
-    // Updated calculateTokens method using BoostManager
     private double calculateTokens(long elapsedMillis) {
         try {
             if (boostManager != null) {
-                // Use BoostManager's calculation method for consistency
                 return boostManager.calculateMiningAmount(elapsedMillis) * getReferralBonusMultiplier();
             } else {
-                // Fallback calculation if BoostManager is not available
-                float baseRate = 0.00125f; // Base rate per second (matches BoostManager)
+                float baseRate = 0.00125f;
                 double tokens = new BigDecimal(elapsedMillis)
                         .divide(new BigDecimal(1000), 4, RoundingMode.HALF_UP)
                         .multiply(new BigDecimal(baseRate))
@@ -792,13 +941,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void saveMinedTokens(double minedTokens) {
         if (!isAdded()) return;
         try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.e(TAG, "User not authenticated, cannot save tokens");
+                return;
+            }
+
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userID);
 
             userRef.child("totalcoins").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    // Check Fragment state
                     if (!isAdded()) {
                         Log.w(TAG, "Fragment detached during token save");
                         return;
@@ -812,12 +965,10 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                         userRef.child("totalcoins").setValue(updatedTotal)
                                 .addOnSuccessListener(aVoid -> {
                                     Log.d("Mining", "Mined tokens updated successfully");
-                                    // Safe SharedPreferences access
                                     SharedPreferences prefs = getSafeSharedPreferences();
                                     if (prefs != null) {
                                         prefs.edit().putFloat("miningTokens", 0.0f).apply();
                                     }
-                                    // Distribute commission to referrers
                                     ReferralCommissionManager.distributeMiningCommission(userID, minedTokens);
                                 })
                                 .addOnFailureListener(e -> Log.e("Mining", "Failed to update mined tokens", e));
@@ -854,17 +1005,14 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         if (!isAdded()) return;
         try {
             if (boostManager != null) {
-                // Activate 1-hour temporary boost
-                long expirationTime = System.currentTimeMillis() + (60 * 60 * 1000); // 1 hour
+                long expirationTime = System.currentTimeMillis() + (60 * 60 * 1000);
                 boostManager.activateTemporaryBoost(expirationTime);
 
-                // NEW: Sync with TaskManager for temporary boost completion
                 if (taskManager != null) {
                     taskManager.completeTemporaryBoostTask();
                     Log.d(TAG, "Temporary boost activated - synced with TaskManager");
                 }
 
-                // NEW: Notify BoostActivity to refresh
                 notifyBoostActivityRefresh();
 
                 Context context = getSafeContext();
@@ -880,10 +1028,8 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         }
     }
 
-    // NEW: Method to notify BoostActivity of task completion
     private void notifyBoostActivityRefresh() {
         try {
-            // Send a broadcast to refresh BoostActivity if it's open
             Context context = getSafeContext();
             if (context != null) {
                 Intent refreshIntent = new Intent("REFRESH_BOOST_TASKS");
@@ -895,16 +1041,13 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         }
     }
 
-    // Updated mining rate display to show per hour instead of per second
     private void updateMiningRateDisplay() {
         if (!isAdded()) return;
         try {
-            if (boostManager != null) {
-                // Use per-hour rate for display consistency with BoostActivity
+            if (boostManager != null && miningRate != null) {
                 float ratePerHour = boostManager.getCurrentMiningRatePerHour();
                 String indicators = boostManager.getBoostIndicators();
 
-                // Display rate per hour with boost indicators
                 if (!indicators.isEmpty()) {
                     miningRate.setText(String.format("%.2f LYX/h %s", ratePerHour, indicators));
                 } else {
@@ -912,9 +1055,8 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                 }
 
                 Log.d(TAG, "Mining rate updated: " + boostManager.getRateBreakdown());
-            } else {
-                // Fallback display - convert base rate to per hour
-                float baseRatePerHour = 0.00125f * 3600f; // 4.5 LYX/hour
+            } else if (miningRate != null) {
+                float baseRatePerHour = 0.00125f * 3600f;
                 miningRate.setText(String.format("%.2f LYX/h", baseRatePerHour));
             }
         } catch (Exception e) {
@@ -925,7 +1067,6 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         }
     }
 
-    // BoostManager.BoostChangeListener implementation
     @Override
     public void onBoostStateChanged(float currentMiningRate, String boostInfo) {
         if (isAdded()) {
@@ -1051,19 +1192,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     @Override
     public void onResume() {
         super.onResume();
+        Log.d(TAG, "MiningFragment onResume");
         try {
-            // Clean up expired ads and smart preload
             if (adManager != null) {
                 adManager.cleanupExpiredAds();
                 smartPreloadAds();
             }
 
-            // Check if mining is active and update UI
             if (isMiningActive && startTime > 0) {
                 startUpdatingUI();
             }
 
-            // Update mining rate display
             updateMiningRateDisplay();
         } catch (Exception e) {
             Log.e(TAG, "Error in onResume", e);
@@ -1071,30 +1210,34 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "MiningFragment onPause");
+        stopUpdatingUI();
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
-        try {
-            // BUG FIX: Properly clean up handler
-            if (handler != null) {
-                try {
-                    handler.removeCallbacksAndMessages(null);
-                    Log.d(TAG, "Handler callbacks removed");
-                } catch (Exception e) {
-                    Log.w(TAG, "Error removing handler callbacks", e);
-                }
-            }
-            // BUG FIX: Remove boost listener
-            if (boostManager != null) {
-                try {
-                    boostManager.removeBoostChangeListener(this);
-                    Log.d(TAG, "Boost change listener removed");
-                } catch (Exception e) {
-                    Log.w(TAG, "Error removing boost listener", e);
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in onDestroyView", e);
+        Log.d(TAG, "MiningFragment onDestroyView");
+
+        stopUpdatingUI();
+
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+            Log.d(TAG, "Handler callbacks removed");
         }
+
+        if (boostManager != null) {
+            boostManager.removeBoostChangeListener(this);
+            Log.d(TAG, "Boost change listener removed");
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "MiningFragment onDestroy");
     }
 
     public static String formatLargeNumber(double value) {
