@@ -37,6 +37,10 @@ public class CommissionsTabFragment extends Fragment {
     private CommissionAdapter commissionAdapter;
     private List<CommissionInfo> commissionList = new ArrayList<>();
 
+    // Track listeners for cleanup
+    private ValueEventListener commissionsListener;
+    private DatabaseReference userRef;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -82,12 +86,19 @@ public class CommissionsTabFragment extends Fragment {
 
     private void loadCommissionData() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+        userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-        // Get commission data
-        userRef.child("commissions").addValueEventListener(new ValueEventListener() {
+        // Remove existing listener to prevent duplicates
+        if (commissionsListener != null) {
+            userRef.child("commissions").removeEventListener(commissionsListener);
+        }
+
+        // OPTIMIZATION: Use single value event listener to reduce Firebase reads
+        commissionsListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+
                 commissionList.clear();
                 double todayTotal = 0.0;
                 double weekTotal = 0.0;
@@ -150,6 +161,18 @@ public class CommissionsTabFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError error) {
                 // Handle error
             }
-        });
+        };
+
+        userRef.child("commissions").addListenerForSingleValueEvent(commissionsListener);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // OPTIMIZATION: Clean up Firebase listeners
+        if (commissionsListener != null && userRef != null) {
+            userRef.child("commissions").removeEventListener(commissionsListener);
+            commissionsListener = null;
+        }
     }
 }

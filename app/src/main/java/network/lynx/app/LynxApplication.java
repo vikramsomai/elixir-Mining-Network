@@ -26,8 +26,8 @@ public class LynxApplication extends Application {
         FirebaseDatabase.getInstance().setPersistenceEnabled(true);
 //        AudienceNetworkAds.initialize(this);
 
-        // Run data migration
-        DataMigrationUtil.migrateReferralData();
+        // OPTIMIZATION: Run data migration only if needed (not on every app start)
+        DataMigrationUtil.migrateReferralDataIfNeeded(this);
 //        AudienceNetworkAds.initialize(this);
         MobileAds.initialize(this, initializationStatus -> {
             Map<String, AdapterStatus> statusMap = initializationStatus.getAdapterStatusMap();

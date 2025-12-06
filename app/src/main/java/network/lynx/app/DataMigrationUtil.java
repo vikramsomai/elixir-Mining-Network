@@ -1,6 +1,8 @@
 package network.lynx.app;
 
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -16,9 +18,33 @@ import java.util.Map;
 
 public class DataMigrationUtil {
     private static final String TAG = "DataMigrationUtil";
+    private static final String MIGRATION_PREFS = "migration_prefs";
+    private static final String MIGRATION_VERSION_KEY = "migration_version";
+    private static final int CURRENT_MIGRATION_VERSION = 1;
+
+    /**
+     * OPTIMIZATION: Check if migration is needed before running
+     * Only runs migration once per version, not on every app start
+     */
+    public static void migrateReferralDataIfNeeded(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(MIGRATION_PREFS, Context.MODE_PRIVATE);
+        int lastMigrationVersion = prefs.getInt(MIGRATION_VERSION_KEY, 0);
+
+        if (lastMigrationVersion >= CURRENT_MIGRATION_VERSION) {
+            Log.d(TAG, "Migration already completed (version " + lastMigrationVersion + ")");
+            return;
+        }
+
+        Log.d(TAG, "Running migration from version " + lastMigrationVersion + " to " + CURRENT_MIGRATION_VERSION);
+        migrateReferralData();
+
+        // Mark migration as complete
+        prefs.edit().putInt(MIGRATION_VERSION_KEY, CURRENT_MIGRATION_VERSION).apply();
+    }
 
     /**
      * Migrates the old referral structure to the new structure
+     * OPTIMIZATION: This should rarely run - only for old data structures
      */
     public static void migrateReferralData() {
         DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");

@@ -69,7 +69,12 @@ public class BoostManager {
 
     private void initializeBoostManager() {
         try {
-            userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() == null) {
+                Log.e(TAG, "No user logged in, cannot initialize BoostManager");
+                return;
+            }
+            userId = auth.getCurrentUser().getUid();
             prefs = context.getSharedPreferences("BoostManager_" + userId, Context.MODE_PRIVATE);
             userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
@@ -114,38 +119,50 @@ public class BoostManager {
     }
 
     private void loadBoostStatesFromFirebase() {
+        if (userRef == null) {
+            Log.e(TAG, "userRef is null, cannot load boost states");
+            return;
+        }
+
+        // OPTIMIZATION: Use single value event listener instead of continuous listener
         // Load permanent boosts
-        userRef.child("permanentBoosts").addValueEventListener(new ValueEventListener() {
+        userRef.child("permanentBoosts").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                boolean oldHasPermanentBoost = hasPermanentBoost;
-                float oldPermanentMultiplier = permanentBoostMultiplier;
+                try {
+                    boolean oldHasPermanentBoost = hasPermanentBoost;
+                    float oldPermanentMultiplier = permanentBoostMultiplier;
 
-                permanentBoostMultiplier = 1.0f;
-                hasPermanentBoost = false;
+                    permanentBoostMultiplier = 1.0f;
+                    hasPermanentBoost = false;
 
-                if (snapshot.child("invite3Friends").exists()) {
-                    Boolean isActive = snapshot.child("invite3Friends").getValue(Boolean.class);
-                    if (isActive != null && isActive) {
-                        Double multiplier = snapshot.child("invite3FriendsMultiplier").getValue(Double.class);
-                        if (multiplier != null) {
-                            permanentBoostMultiplier = multiplier.floatValue();
-                            hasPermanentBoost = true;
+                    if (snapshot.child("invite3Friends").exists()) {
+                        Boolean isActive = snapshot.child("invite3Friends").getValue(Boolean.class);
+                        if (isActive != null && isActive) {
+                            Double multiplier = snapshot.child("invite3FriendsMultiplier").getValue(Double.class);
+                            if (multiplier != null) {
+                                permanentBoostMultiplier = multiplier.floatValue();
+                                hasPermanentBoost = true;
+                            }
                         }
                     }
-                }
 
-                // Cache the values
-                prefs.edit()
-                        .putFloat("permanentBoostMultiplier", permanentBoostMultiplier)
-                        .putBoolean("hasPermanentBoost", hasPermanentBoost)
-                        .apply();
+                    // Cache the values
+                    if (prefs != null) {
+                        prefs.edit()
+                                .putFloat("permanentBoostMultiplier", permanentBoostMultiplier)
+                                .putBoolean("hasPermanentBoost", hasPermanentBoost)
+                                .apply();
+                    }
 
-                // Notify listeners if changed
-                if (oldHasPermanentBoost != hasPermanentBoost || oldPermanentMultiplier != permanentBoostMultiplier) {
-                    notifyPermanentBoostChanged();
+                    // Notify listeners if changed
+                    if (oldHasPermanentBoost != hasPermanentBoost || oldPermanentMultiplier != permanentBoostMultiplier) {
+                        notifyPermanentBoostChanged();
+                    }
+                    notifyBoostStateChanged();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing permanent boosts", e);
                 }
-                notifyBoostStateChanged();
             }
 
             @Override
@@ -154,40 +171,44 @@ public class BoostManager {
             }
         });
 
-        // Load active boosts from Firebase
-        userRef.child("activeBoosts").addValueEventListener(new ValueEventListener() {
+        // Load active boosts from Firebase - also use single value listener
+        userRef.child("activeBoosts").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                long currentTime = System.currentTimeMillis();
+                try {
+                    long currentTime = System.currentTimeMillis();
 
-                // Check temporary boost
-                if (snapshot.child("temporaryBoost").exists()) {
-                    Long expirationTime = snapshot.child("temporaryBoost").child("expirationTime").getValue(Long.class);
-                    if (expirationTime != null && expirationTime > currentTime) {
-                        activateTemporaryBoost(expirationTime);
-                    } else if (isTemporaryBoostActive) {
-                        deactivateTemporaryBoost();
+                    // Check temporary boost
+                    if (snapshot.child("temporaryBoost").exists()) {
+                        Long expirationTime = snapshot.child("temporaryBoost").child("expirationTime").getValue(Long.class);
+                        if (expirationTime != null && expirationTime > currentTime) {
+                            activateTemporaryBoost(expirationTime);
+                        } else if (isTemporaryBoostActive) {
+                            deactivateTemporaryBoost();
+                        }
                     }
-                }
 
-                // Check Twitter boost
-                if (snapshot.child("twitterFollow").exists()) {
-                    Long expirationTime = snapshot.child("twitterFollow").child("expirationTime").getValue(Long.class);
-                    if (expirationTime != null && expirationTime > currentTime) {
-                        activateTwitterBoost(expirationTime);
-                    } else if (isTwitterBoostActive) {
-                        deactivateTwitterBoost();
+                    // Check Twitter boost
+                    if (snapshot.child("twitterFollow").exists()) {
+                        Long expirationTime = snapshot.child("twitterFollow").child("expirationTime").getValue(Long.class);
+                        if (expirationTime != null && expirationTime > currentTime) {
+                            activateTwitterBoost(expirationTime);
+                        } else if (isTwitterBoostActive) {
+                            deactivateTwitterBoost();
+                        }
                     }
-                }
 
-                // Check daily checkin boost
-                if (snapshot.child("dailyCheckin").exists()) {
-                    Long expirationTime = snapshot.child("dailyCheckin").child("expirationTime").getValue(Long.class);
-                    if (expirationTime != null && expirationTime > currentTime) {
-                        activateDailyCheckinBoost(expirationTime);
-                    } else if (isDailyCheckinBoostActive) {
-                        deactivateDailyCheckinBoost();
+                    // Check daily checkin boost
+                    if (snapshot.child("dailyCheckin").exists()) {
+                        Long expirationTime = snapshot.child("dailyCheckin").child("expirationTime").getValue(Long.class);
+                        if (expirationTime != null && expirationTime > currentTime) {
+                            activateDailyCheckinBoost(expirationTime);
+                        } else if (isDailyCheckinBoostActive) {
+                            deactivateDailyCheckinBoost();
+                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing active boosts", e);
                 }
             }
 
@@ -196,6 +217,14 @@ public class BoostManager {
                 Log.e(TAG, "Error loading active boosts", error.toException());
             }
         });
+    }
+
+    /**
+     * Manually refresh boost states from Firebase
+     * Call this when needed (e.g., when boost is activated)
+     */
+    public void refreshBoostStates() {
+        loadBoostStatesFromFirebase();
     }
 
     // RATE CALCULATION METHODS

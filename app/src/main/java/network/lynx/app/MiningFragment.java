@@ -42,7 +42,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class MiningFragment extends Fragment implements BoostManager.BoostChangeListener {
+public class MiningFragment extends Fragment implements BoostManager.BoostChangeListener, MiningSyncManager.MiningSyncListener {
     private static final String TAG = "MiningFragment";
 
     // UI Components
@@ -69,7 +69,8 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     // Managers
     private AdManager adManager;
     private BoostManager boostManager;
-    private TaskManager taskManager; // NEW: TaskManager integration
+    private TaskManager taskManager;
+    private MiningSyncManager syncManager; // NEW: Cross-device sync manager
 
     @Nullable
     @Override
@@ -135,12 +136,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                 boostManager.addBoostChangeListener(this);
                 Log.d(TAG, "BoostManager initialized successfully");
 
-                // NEW: Initialize TaskManager
+                // Initialize TaskManager
                 String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
                 if (userID != null) {
                     taskManager = new TaskManager(context, userID);
                     Log.d(TAG, "TaskManager initialized successfully");
                 }
+
+                // NEW: Initialize MiningSyncManager for cross-device sync
+                syncManager = MiningSyncManager.getInstance(context);
+                syncManager.setListener(this);
+                Log.d(TAG, "MiningSyncManager initialized successfully");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing managers", e);
@@ -528,27 +534,53 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             SharedPreferences prefs = getSafeSharedPreferences();
             if (prefs == null) return;
 
+            // Load cached coins for immediate display
             float cachedTotalCoins = prefs.getFloat("totalCoins", 0.0f);
-            boolean cachedIsMiningActive = prefs.getBoolean("isMiningActive", false);
-            long cachedStartTime = prefs.getLong("startTime", 0);
-
             counterTextView.setText(formatLargeNumber(cachedTotalCoins));
 
-            if (cachedIsMiningActive && cachedStartTime > 0) {
-                long elapsed = System.currentTimeMillis() - cachedStartTime;
-                if (elapsed < MINING_DURATION) {
-                    double tokens = calculateTokens(elapsed);
-                    counterTextView.setText(formatLargeNumber(cachedTotalCoins + tokens));
-                    miningTimerTextView.setText(formatTime(MINING_DURATION - elapsed));
-                    float progress = ((float) elapsed / MINING_DURATION) * 100;
-                    miningPer.setText(String.format("%.2f%%", progress));
+            // NEW: Use MiningSyncManager for mining state
+            if (syncManager != null) {
+                isMiningActive = syncManager.isMiningActive();
+                startTime = syncManager.getMiningStartTime();
+                initialTotalCoins = syncManager.getCachedTotalCoins();
+
+                if (isMiningActive && startTime > 0) {
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    if (elapsed < MINING_DURATION) {
+                        double tokens = calculateTokens(elapsed);
+                        counterTextView.setText(formatLargeNumber(initialTotalCoins + tokens));
+                        miningTimerTextView.setText(formatTime(MINING_DURATION - elapsed));
+                        float progress = ((float) elapsed / MINING_DURATION) * 100;
+                        miningPer.setText(String.format("%.2f%%", progress));
+                    } else {
+                        miningTimerTextView.setText("00:00:00");
+                        miningPer.setText("100.00%");
+                    }
                 } else {
                     miningTimerTextView.setText("00:00:00");
-                    miningPer.setText("100.00%");
+                    miningPer.setText("Start");
                 }
             } else {
-                miningTimerTextView.setText("00:00:00");
-                miningPer.setText("Start");
+                // Fallback to old behavior
+                boolean cachedIsMiningActive = prefs.getBoolean("isMiningActive", false);
+                long cachedStartTime = prefs.getLong("startTime", 0);
+
+                if (cachedIsMiningActive && cachedStartTime > 0) {
+                    long elapsed = System.currentTimeMillis() - cachedStartTime;
+                    if (elapsed < MINING_DURATION) {
+                        double tokens = calculateTokens(elapsed);
+                        counterTextView.setText(formatLargeNumber(cachedTotalCoins + tokens));
+                        miningTimerTextView.setText(formatTime(MINING_DURATION - elapsed));
+                        float progress = ((float) elapsed / MINING_DURATION) * 100;
+                        miningPer.setText(String.format("%.2f%%", progress));
+                    } else {
+                        miningTimerTextView.setText("00:00:00");
+                        miningPer.setText("100.00%");
+                    }
+                } else {
+                    miningTimerTextView.setText("00:00:00");
+                    miningPer.setText("Start");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error loading cached data", e);
@@ -558,13 +590,21 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void fetchUserData() {
         if (!isAdded()) return;
         try {
+            // NEW: Use MiningSyncManager for efficient cross-device sync
+            // This reduces Firebase reads by syncing smartly instead of reading on every call
+            if (syncManager != null) {
+                syncManager.syncOnAppOpen();
+                Log.d(TAG, "Using MiningSyncManager for cross-device sync");
+                return;
+            }
+
+            // Fallback to direct Firebase call if syncManager not available
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userID);
 
             userRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    // Check if Fragment is still attached before proceeding
                     if (!isAdded() || getSafeContext() == null) {
                         Log.w(TAG, "Fragment not attached, skipping UI update");
                         return;
@@ -590,32 +630,26 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                             long elapsed = System.currentTimeMillis() - startTime;
 
                             if (elapsed >= MINING_DURATION) {
-                                if (isAdded()) {
-                                    isMiningActive = false;
-                                    double tokens = calculateTokens(MINING_DURATION);
-                                    double finalTotal = initialTotalCoins + tokens;
-                                    counterTextView.setText(formatLargeNumber(finalTotal));
-                                    miningTimerTextView.setText("00:00:00");
-                                    miningPer.setText("100.00%");
-                                    saveMinedTokens(tokens);
-                                    if (miningRef != null) {
-                                        miningRef.child("isMiningActive").setValue(false);
-                                        miningRef.child("startTime").setValue(0);
-                                    }
+                                isMiningActive = false;
+                                double tokens = calculateTokens(MINING_DURATION);
+                                double finalTotal = initialTotalCoins + tokens;
+                                counterTextView.setText(formatLargeNumber(finalTotal));
+                                miningTimerTextView.setText("00:00:00");
+                                miningPer.setText("100.00%");
+                                saveMinedTokens(tokens);
+                                if (miningRef != null) {
+                                    miningRef.child("isMiningActive").setValue(false);
+                                    miningRef.child("startTime").setValue(0);
                                 }
                             } else {
                                 isMiningActive = true;
-                                if (isAdded()) {
-                                    startUpdatingUI();
-                                }
+                                startUpdatingUI();
                             }
                         } else {
-                            if (isAdded()) {
-                                isMiningActive = false;
-                                miningTimerTextView.setText("00:00:00");
-                                miningPer.setText("Start");
-                                counterTextView.setText(formatLargeNumber(initialTotalCoins));
-                            }
+                            isMiningActive = false;
+                            miningTimerTextView.setText("00:00:00");
+                            miningPer.setText("Start");
+                            counterTextView.setText(formatLargeNumber(initialTotalCoins));
                         }
 
                         // Safe SharedPreferences update
@@ -690,13 +724,37 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
 
         startButton.setEnabled(false);
         try {
+            // NEW: Use MiningSyncManager for cross-device sync
+            if (syncManager != null) {
+                // Start mining with sync manager - handles cross-device coordination
+                syncManager.startMining(initialTotalCoins);
+                isMiningActive = true;
+                startTime = syncManager.getMiningStartTime();
+                startUpdatingUI();
+                startButton.setEnabled(true);
+
+                // Schedule work manager for background completion
+                Context context = getSafeContext();
+                if (context != null) {
+                    Data inputData = new Data.Builder().putLong("startTime", startTime).build();
+                    OneTimeWorkRequest miningWorkRequest = new OneTimeWorkRequest.Builder(MiningWorker.class)
+                            .setInitialDelay(24, TimeUnit.HOURS)
+                            .setInputData(inputData)
+                            .build();
+                    WorkManager.getInstance(context).enqueue(miningWorkRequest);
+                }
+
+                Log.d(TAG, "Mining started via MiningSyncManager");
+                return;
+            }
+
+            // Fallback to direct Firebase if syncManager not available
             String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
             DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userID);
 
             userRef.child("totalcoins").addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                    // Always check Fragment state first
                     if (!isAdded()) {
                         Log.w(TAG, "Fragment detached during mining start");
                         return;
@@ -710,13 +768,11 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                             miningRef.child("startTime").setValue(startTime);
                             miningRef.child("isMiningActive").setValue(true)
                                     .addOnSuccessListener(aVoid -> {
-                                        // Check Fragment state before UI updates
                                         if (isAdded()) {
                                             isMiningActive = true;
                                             startUpdatingUI();
                                             startButton.setEnabled(true);
 
-                                            // Safe context access for WorkManager
                                             Context context = getSafeContext();
                                             if (context != null) {
                                                 Data inputData = new Data.Builder().putLong("startTime", startTime).build();
@@ -1058,6 +1114,11 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                 smartPreloadAds();
             }
 
+            // NEW: Notify sync manager app is in foreground for smart sync
+            if (syncManager != null) {
+                syncManager.onAppForeground();
+            }
+
             // Check if mining is active and update UI
             if (isMiningActive && startTime > 0) {
                 startUpdatingUI();
@@ -1071,6 +1132,19 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        try {
+            // NEW: Notify sync manager app is going to background
+            if (syncManager != null) {
+                syncManager.onAppBackground();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onPause", e);
+        }
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
         try {
@@ -1079,6 +1153,10 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             }
             if (boostManager != null) {
                 boostManager.removeBoostChangeListener(this);
+            }
+            // NEW: Clean up sync manager listener
+            if (syncManager != null) {
+                syncManager.removeListener();
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onDestroyView", e);
@@ -1096,5 +1174,86 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             Log.e(TAG, "Error formatting large number", e);
             return "0.00";
         }
+    }
+
+    // ==========================================
+    // MiningSyncManager.MiningSyncListener Implementation
+    // ==========================================
+
+    @Override
+    public void onMiningStateChanged(boolean isActive, long miningStartTime, long remainingTime) {
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            try {
+                isMiningActive = isActive;
+                startTime = miningStartTime;
+                if (isActive && miningStartTime > 0) {
+                    if (remainingTime > 0) {
+                        miningTimerTextView.setText(formatTime(remainingTime));
+                        float progress = ((float) (MINING_DURATION - remainingTime) / MINING_DURATION) * 100;
+                        miningPer.setText(String.format(Locale.US, "%.2f%%", progress));
+                        startUpdatingUI();
+                    } else {
+                        miningTimerTextView.setText("00:00:00");
+                        miningPer.setText("100.00%");
+                    }
+                } else {
+                    miningTimerTextView.setText("00:00:00");
+                    miningPer.setText("Start");
+                }
+                Log.d(TAG, "Mining state updated from sync - Active: " + isActive);
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating mining state from sync", e);
+            }
+        });
+    }
+
+    @Override
+    public void onMiningConflict(String message) {
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            Context context = getSafeContext();
+            if (context != null) {
+                ToastUtils.showInfo(context, message);
+            }
+            Log.d(TAG, "Mining conflict detected: " + message);
+        });
+    }
+
+    @Override
+    public void onTotalCoinsUpdated(double totalCoins) {
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            try {
+                initialTotalCoins = totalCoins;
+                if (isMiningActive && startTime > 0) {
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    double currentTokens = calculateTokens(elapsed);
+                    counterTextView.setText(formatLargeNumber(totalCoins + currentTokens));
+                } else {
+                    counterTextView.setText(formatLargeNumber(totalCoins));
+                }
+                SharedPreferences prefs = getSafeSharedPreferences();
+                if (prefs != null) {
+                    prefs.edit().putFloat("totalCoins", (float) totalCoins).apply();
+                }
+                Log.d(TAG, "Total coins updated from sync: " + totalCoins);
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating total coins from sync", e);
+            }
+        });
+    }
+
+    @Override
+    public void onSyncComplete(boolean success) {
+        if (!isAdded()) return;
+        requireActivity().runOnUiThread(() -> {
+            if (success) {
+                Log.d(TAG, "Sync completed successfully");
+                updateMiningRateDisplay();
+            } else {
+                Log.w(TAG, "Sync failed, using cached data");
+            }
+        });
     }
 }

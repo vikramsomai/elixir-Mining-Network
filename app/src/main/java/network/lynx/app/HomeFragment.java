@@ -259,6 +259,13 @@ public class HomeFragment extends Fragment {
 
     private void loadBannersFromFirebase() {
         bannersRef = FirebaseDatabase.getInstance().getReference("banners");
+
+        // Remove existing listener if any
+        if (bannersValueListener != null) {
+            bannersRef.removeEventListener(bannersValueListener);
+        }
+
+        // OPTIMIZATION: Use single value event listener - banners don't need realtime updates
         bannersValueListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -276,7 +283,7 @@ public class HomeFragment extends Fragment {
                 if (isAdded()) Log.e(TAG, "Failed to load banners: " + databaseError.getMessage());
             }
         };
-        bannersRef.addValueEventListener(bannersValueListener);
+        bannersRef.addListenerForSingleValueEvent(bannersValueListener);
     }
 
     private void setupGridView() {
@@ -482,6 +489,13 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        // Remove existing listener to prevent duplicates
+        if (userValueListener != null) {
+            databaseReference.removeEventListener(userValueListener);
+        }
+
+        // OPTIMIZATION: Use single value event listener to reduce Firebase reads
+        // We'll refresh data manually when needed (on resume, after claim, etc.)
         userValueListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -498,7 +512,7 @@ public class HomeFragment extends Fragment {
                 }
             }
         };
-        databaseReference.addValueEventListener(userValueListener);
+        databaseReference.addListenerForSingleValueEvent(userValueListener);
     }
 
     private void updateUserDataFromSnapshot(DataSnapshot snapshot) {

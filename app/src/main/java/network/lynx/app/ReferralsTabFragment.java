@@ -40,6 +40,10 @@ public class ReferralsTabFragment extends Fragment {
     private List<ReferralInfo> referralList = new ArrayList<>();
     private String referralCode;
 
+    // Track listeners for cleanup
+    private ValueEventListener referralsListener;
+    private DatabaseReference userRef;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -68,9 +72,9 @@ public class ReferralsTabFragment extends Fragment {
 
     private void loadReferralData() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+        userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-        // Get referral code
+        // Get referral code - use single value event
         userRef.child("referralCode").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -83,10 +87,17 @@ public class ReferralsTabFragment extends Fragment {
             }
         });
 
-        // Load referrals data
-        userRef.child("referrals").addValueEventListener(new ValueEventListener() {
+        // Remove existing listener to prevent duplicates
+        if (referralsListener != null) {
+            userRef.child("referrals").removeEventListener(referralsListener);
+        }
+
+        // OPTIMIZATION: Use single value event listener instead of continuous listener
+        referralsListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+
                 referralList.clear();
                 int totalReferrals = 0;
                 int activeUsers = 0;
@@ -113,8 +124,9 @@ public class ReferralsTabFragment extends Fragment {
                             referralList.add(referralInfo);
                             totalReferrals++;
 
-                            // Migrate to new structure
-                            migrateReferralData(userId, referralId, referralInfo);
+                            // OPTIMIZATION: Only migrate if not already in new structure
+                            // This reduces unnecessary Firebase writes
+                            migrateReferralDataOnce(userId, referralId, referralInfo);
                         }
                     }
                     // Using new structure
@@ -175,11 +187,14 @@ public class ReferralsTabFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError error) {
                 // Handle error
             }
-        });
+        };
+
+        userRef.child("referrals").addListenerForSingleValueEvent(referralsListener);
     }
 
-    private void migrateReferralData(String userId, String referralId, ReferralInfo referralInfo) {
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+    // OPTIMIZATION: Only migrate once, not on every load
+    private void migrateReferralDataOnce(String userId, String referralId, ReferralInfo referralInfo) {
+        DatabaseReference refRef = FirebaseDatabase.getInstance().getReference("users").child(userId).child("referrals").child(referralId);
 
         Map<String, Object> updatedReferral = new HashMap<>();
         updatedReferral.put("userId", referralInfo.getUserId());
@@ -187,8 +202,11 @@ public class ReferralsTabFragment extends Fragment {
         updatedReferral.put("joinDate", referralInfo.getJoinDate());
         updatedReferral.put("isActive", referralInfo.isActive());
         updatedReferral.put("totalCommission", referralInfo.getTotalCommission());
+        // Remove old fields
+        updatedReferral.put("refer_UserId", null);
+        updatedReferral.put("refer_username", null);
 
-        userRef.child("referrals").child(referralId).setValue(updatedReferral);
+        refRef.updateChildren(updatedReferral);
     }
 
     private void shareAppInvite() {
@@ -207,5 +225,15 @@ public class ReferralsTabFragment extends Fragment {
 
         Intent shareIntent = Intent.createChooser(sendIntent, "Share via");
         startActivity(shareIntent);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // OPTIMIZATION: Clean up Firebase listeners
+        if (referralsListener != null && userRef != null) {
+            userRef.child("referrals").removeEventListener(referralsListener);
+            referralsListener = null;
+        }
     }
 }

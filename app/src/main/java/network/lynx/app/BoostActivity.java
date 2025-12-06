@@ -34,6 +34,9 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
     private BoostManager boostManager;
     private TaskManager taskManager;
 
+    // Track Firebase listener for cleanup
+    private ValueEventListener boostDataListener;
+
     // NEW: BroadcastReceiver for task refresh
     private BroadcastReceiver taskRefreshReceiver = new BroadcastReceiver() {
         @Override
@@ -81,6 +84,7 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
             Log.d(TAG, "Step 5: Initializing managers...");
             if (!initializeManagers()) {
                 Log.e(TAG, "❌ Step 5: Manager initialization failed");
+
                 return;
             }
             Log.d(TAG, "✅ Step 5: Managers initialized successfully");
@@ -280,7 +284,13 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
     private void registerBroadcastReceiver() {
         try {
             IntentFilter filter = new IntentFilter("REFRESH_BOOST_TASKS");
-            registerReceiver(taskRefreshReceiver, filter);
+            // Use ContextCompat for backwards compatible receiver registration
+            androidx.core.content.ContextCompat.registerReceiver(
+                    this,
+                    taskRefreshReceiver,
+                    filter,
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            );
             Log.d(TAG, "Broadcast receiver registered successfully");
         } catch (Exception e) {
             Log.e(TAG, "Error registering broadcast receiver", e);
@@ -387,7 +397,13 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
             updateBoostDisplay();
 
             if (userRef != null) {
-                userRef.addValueEventListener(new ValueEventListener() {
+                // Remove existing listener to prevent duplicates
+                if (boostDataListener != null) {
+                    userRef.removeEventListener(boostDataListener);
+                }
+
+                // OPTIMIZATION: Use single value event listener - we'll manually refresh when needed
+                boostDataListener = new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot snapshot) {
                         if (snapshot.exists()) {
@@ -401,7 +417,9 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
                     public void onCancelled(DatabaseError error) {
                         Log.e(TAG, "Error loading boost data", error.toException());
                     }
-                });
+                };
+
+                userRef.addListenerForSingleValueEvent(boostDataListener);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in loadBoostData", e);
@@ -554,6 +572,12 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
         try {
             if (boostManager != null) {
                 boostManager.removeBoostChangeListener(this);
+            }
+
+            // OPTIMIZATION: Clean up Firebase listener
+            if (boostDataListener != null && userRef != null) {
+                userRef.removeEventListener(boostDataListener);
+                boostDataListener = null;
             }
 
             // Unregister broadcast receiver

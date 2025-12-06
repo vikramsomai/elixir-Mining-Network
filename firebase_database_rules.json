@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      ".indexOn": ["totalcoins", "referralCode", "username"],
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "daily_quests": {
+      ".read": "auth != null",
+      ".write": false
+    },
+    "user_quest_progress": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "banners": {
+      ".read": "auth != null",
+      ".write": false
+    }
+  }
+}
+

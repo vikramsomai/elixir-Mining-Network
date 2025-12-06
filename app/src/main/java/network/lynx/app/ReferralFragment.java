@@ -36,6 +36,9 @@ public class ReferralFragment extends Fragment {
     private double totalCoins = 0.0;
     private boolean isBoostActive = false;
 
+    // Track listener for cleanup
+    private ValueEventListener referralListener;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -146,7 +149,14 @@ public class ReferralFragment extends Fragment {
             return;
         }
 
-        userRef.addValueEventListener(new ValueEventListener() {
+        // Remove existing listener to prevent duplicates
+        if (referralListener != null) {
+            userRef.removeEventListener(referralListener);
+        }
+
+        // OPTIMIZATION: Use single value event listener instead of continuous listener
+        // This prevents unnecessary Firebase reads and fixes the infinite loop bug
+        referralListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!isAdded()) {
@@ -162,7 +172,7 @@ public class ReferralFragment extends Fragment {
                             referralCode.setText(currentReferralCode);
                         }
 
-                        // NEW: Get total coins from user account
+                        // Get total coins from user account (read-only, don't update)
                         Double userTotalCoins = snapshot.child("totalcoins").getValue(Double.class);
                         if (userTotalCoins != null) {
                             totalCoins = userTotalCoins;
@@ -179,7 +189,7 @@ public class ReferralFragment extends Fragment {
                             }
                         }
 
-                        // NEW: Calculate referral income from mining commissions
+                        // Calculate referral income from mining commissions
                         double referralMiningIncome = 0.0;
                         if (snapshot.child("referralEarnings").exists()) {
                             for (DataSnapshot earning : snapshot.child("referralEarnings").getChildren()) {
@@ -202,12 +212,6 @@ public class ReferralFragment extends Fragment {
                             totalEarned.setText(String.format("%.4f LYX", displayEarned));
                         }
 
-                        // NEW: Display total coins including referral income
-//                        if (totalCoinsDisplay != null) {
-//                            double totalWithReferrals = totalCoins + totalReferralIncome;
-//                            totalEarned.setText(String.format("Total: %.4f LYX", totalWithReferrals));
-//                        }
-
                         // Count active referrals
                         int totalReferrals = 0;
                         if (snapshot.child("referrals").exists()) {
@@ -217,8 +221,9 @@ public class ReferralFragment extends Fragment {
                             friendsAdded.setText(String.valueOf(totalReferrals));
                         }
 
-                        // NEW: Update user's total coins to include referral income
-                        updateUserTotalCoins(totalReferralIncome);
+                        // REMOVED: updateUserTotalCoins() - This was causing infinite loop!
+                        // The totalcoins should only be updated from mining/check-in activities,
+                        // not on every data read. This was causing excessive Firebase writes.
 
                         Log.d(TAG, "Referral data loaded successfully - Total referral income: " + totalReferralIncome);
                     }
@@ -237,25 +242,12 @@ public class ReferralFragment extends Fragment {
                     ToastUtils.showError(getContext(), "Failed to load referral data");
                 }
             }
-        });
+        };
+
+        userRef.addListenerForSingleValueEvent(referralListener);
     }
 
-    // NEW: Method to update user's total coins with referral income
-    private void updateUserTotalCoins(double referralIncome) {
-        if (userRef != null && referralIncome > 0) {
-            // Only update if there's actual referral income
-            double newTotalCoins = totalCoins + referralIncome;
-
-            // Update Firebase with new total (this should be done carefully to avoid double-counting)
-            userRef.child("totalcoins").setValue(newTotalCoins)
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Total coins updated with referral income: " + newTotalCoins);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to update total coins", e);
-                    });
-        }
-    }
+    // REMOVED: updateUserTotalCoins method - it was causing infinite Firebase write loop
 
     private void checkBoostStatus(DataSnapshot snapshot) {
         try {
@@ -414,6 +406,11 @@ public class ReferralFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        Log.d(TAG, "ReferralFragment destroyed");
+        // OPTIMIZATION: Clean up Firebase listener to prevent memory leaks and unnecessary reads
+        if (referralListener != null && userRef != null) {
+            userRef.removeEventListener(referralListener);
+            referralListener = null;
+        }
+        Log.d(TAG, "ReferralFragment destroyed - listeners cleaned up");
     }
 }
