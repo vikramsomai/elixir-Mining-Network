@@ -237,8 +237,8 @@ public class HomeFragment extends Fragment {
 
 
     private void setupGridView() {
-        String[] optionName = {"LeaderBoard", "Blogs", "Faqs"};
-        int[] optionImage = {R.drawable.leaderboard_17595903, R.drawable.news, R.drawable.ic_question};
+        String[] optionName = {"Rewards", "LeaderBoard", "Blogs", "Faqs"};
+        int[] optionImage = {R.drawable.ic_gift, R.drawable.leaderboard_17595903, R.drawable.news, R.drawable.ic_question};
 
         homeAdapater adapter = new homeAdapater(requireActivity(), optionName, optionImage);
         if (gridView != null) gridView.setAdapter(adapter);
@@ -247,6 +247,9 @@ public class HomeFragment extends Fragment {
             gridView.setOnItemClickListener((parent, view, position, id) -> {
                 if (!isAdded()) return;
                 switch (optionName[position]) {
+                    case "Rewards":
+                        startActivity(new Intent(requireActivity(), RewardsHubActivity.class));
+                        break;
                     case "LeaderBoard":
                         startActivity(new Intent(requireActivity(), LeaderBoardActivity.class));
                         break;

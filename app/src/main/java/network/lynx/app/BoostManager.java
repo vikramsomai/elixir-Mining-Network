@@ -256,6 +256,35 @@ public class BoostManager {
             rate *= DAILY_CHECKIN_MULTIPLIER;
         }
 
+        // NEW: Apply mining streak multiplier
+        try {
+            MiningStreakManager streakManager = MiningStreakManager.getInstance(context);
+            rate *= streakManager.getCurrentMultiplier();
+        } catch (Exception e) {
+            // MiningStreakManager not initialized
+        }
+
+        // NEW: Apply lucky number boost
+        try {
+            DailyLuckyNumberManager luckyManager = DailyLuckyNumberManager.getInstance(context);
+            if (luckyManager.hasActiveBoost()) {
+                rate *= luckyManager.getActiveBoostMultiplier();
+            }
+        } catch (Exception e) {
+            // DailyLuckyNumberManager not initialized
+        }
+
+        // NEW: Apply achievement boost
+        try {
+            AchievementManager achievementManager = AchievementManager.getInstance(context);
+            float achievementBoost = achievementManager.getTotalAchievementBoost();
+            if (achievementBoost > 0) {
+                rate *= (1 + achievementBoost);
+            }
+        } catch (Exception e) {
+            // AchievementManager not initialized
+        }
+
         return rate;
     }
 
@@ -541,5 +570,14 @@ public class BoostManager {
                 Log.e(TAG, "Error notifying permanent boost change listener", e);
             }
         }
+    }
+
+    /**
+     * Cleanup method to remove all listeners
+     * Call this when the component using BoostManager is destroyed
+     */
+    public void cleanup() {
+        listeners.clear();
+        Log.d(TAG, "BoostManager listeners cleared");
     }
 }

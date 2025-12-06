@@ -671,6 +671,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         if (!isAdded()) return;
 
         startButton.setEnabled(false);
+
+        // Record mining session for streak tracking
+        try {
+            Context context = getSafeContext();
+            if (context != null) {
+                MiningStreakManager.getInstance(context).recordMiningSession();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not record mining streak", e);
+        }
+
         try {
             // NEW: Use MiningSyncManager for cross-device sync
             if (syncManager != null) {
@@ -823,6 +834,9 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                                     }
                                     // Distribute commission to referrers
                                     ReferralCommissionManager.distributeMiningCommission(userID, minedTokens);
+
+                                    // Check achievements after mining
+                                    checkAchievementsAfterMining(updatedTotal);
                                 })
                                 .addOnFailureListener(e -> Log.e("Mining", "Failed to update mined tokens", e));
                     } catch (Exception e) {
@@ -837,6 +851,29 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             });
         } catch (Exception e) {
             Log.e(TAG, "Error in saveMinedTokens", e);
+        }
+    }
+
+    private void checkAchievementsAfterMining(double totalCoins) {
+        try {
+            Context context = getSafeContext();
+            if (context == null) return;
+
+            AchievementManager achievementManager = AchievementManager.getInstance(context);
+            MiningStreakManager streakManager = MiningStreakManager.getInstance(context);
+
+            // Get referral count
+            SharedPreferences prefs = getSafeSharedPreferences();
+            int referrals = prefs != null ? prefs.getInt("referralCount", 0) : 0;
+            int streak = streakManager.getCurrentStreak();
+            int spins = prefs != null ? prefs.getInt("totalSpins", 0) : 0;
+
+            // Check all achievements
+            achievementManager.checkAchievements(totalCoins, referrals, streak, spins);
+
+            Log.d(TAG, "Achievements checked: coins=" + totalCoins + ", referrals=" + referrals + ", streak=" + streak);
+        } catch (Exception e) {
+            Log.w(TAG, "Error checking achievements", e);
         }
     }
 

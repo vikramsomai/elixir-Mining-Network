@@ -30,6 +30,7 @@ public class MiningViewModel extends AndroidViewModel {
     private final MutableLiveData<String> error = new MutableLiveData<>();
 
     private BoostManager boostManager; // Changed from BoostManagerOptimized to BoostManager
+    private BoostManager.BoostChangeListener boostChangeListener;
     private DatabaseReference userRef;
     private ValueEventListener userListener;
     private SharedPreferences prefs;
@@ -118,25 +119,27 @@ public class MiningViewModel extends AndroidViewModel {
             return;
         }
 
-        boostManager.addBoostChangeListener(new BoostManager.BoostChangeListener() {
+        boostChangeListener = new BoostManager.BoostChangeListener() {
             @Override
-            public void onBoostStateChanged(float currentMiningRate, String boostInfo) {
+            public void onBoostStateChanged(float currentMiningRate, String boostInfoStr) {
                 miningRate.setValue(currentMiningRate);
-                MiningViewModel.this.boostInfo.setValue(boostInfo);
+                MiningViewModel.this.boostInfo.setValue(boostInfoStr);
             }
 
             @Override
             public void onPermanentBoostChanged(boolean hasPermanentBoost, float multiplier) {
                 // Update mining rate when permanent boost changes
                 if (boostManager != null) {
-                    miningRate.setValue(boostManager.getCurrentMiningRate());
+                    miningRate.setValue(boostManager.getCurrentMiningRatePerHour());
                 }
             }
-        });
+        };
+
+        boostManager.addBoostChangeListener(boostChangeListener);
 
         // Set initial mining rate
         if (boostManager != null) {
-            miningRate.setValue(boostManager.getCurrentMiningRate());
+            miningRate.setValue(boostManager.getCurrentMiningRatePerHour());
         }
     }
 
@@ -179,13 +182,14 @@ public class MiningViewModel extends AndroidViewModel {
     protected void onCleared() {
         super.onCleared();
 
-        // Cleanup
+        // Cleanup Firebase listener
         if (userListener != null && userRef != null) {
             userRef.removeEventListener(userListener);
         }
 
-        if (boostManager != null) {
-            boostManager.cleanup();
+        // Cleanup boost listener
+        if (boostManager != null && boostChangeListener != null) {
+            boostManager.removeBoostChangeListener(boostChangeListener);
         }
     }
 }

@@ -34,6 +34,9 @@
             android:name=".FaqsActivity"
             android:exported="false" />
         <activity
+            android:name=".RewardsHubActivity"
+            android:exported="false" />
+        <activity
             android:name=".spinActivity"
             android:exported="false" />
         <activity
