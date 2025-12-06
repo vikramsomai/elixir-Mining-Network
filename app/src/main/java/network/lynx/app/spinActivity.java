@@ -150,25 +150,12 @@ public class spinActivity extends AppCompatActivity {
         // Record feature usage for smart preloading
         adManager.recordFeatureUsage(this, AdManager.AD_UNIT_SPIN);
 
-        if (adManager.isAdReady(AdManager.AD_UNIT_SPIN)) {
-            showRewardedAd();
-        } else {
-            spinButton.setText("Loading Ad...");
-            spinButton.setEnabled(false);
-            adManager.loadRewardedAd(this, AdManager.AD_UNIT_SPIN, new AdManager.AdLoadCallback() {
-                @Override
-                public void onAdLoaded() {
-                    showRewardedAd();
-                }
-
-                @Override
-                public void onAdLoadFailed(String error) {
-                    ToastUtils.showInfo(spinActivity.this, "Ad not available. Please try again later.");
-                    resetSpinButton();
-                }
-            });
-        }
+        // showRewardedAd will automatically load if not ready
+        spinButton.setText("Loading Ad...");
+        spinButton.setEnabled(false);
+        showRewardedAd();
     }
+
 
     private void showRewardedAd() {
         spinButton.setText("Loading Ad...");

@@ -15,6 +15,7 @@ public class AdConsentManager {
     private static final String PREFS_NAME = "ad_consent_prefs";
     private static final String KEY_CONSENT_GIVEN = "consent_given_";
     private static final String KEY_CONSENT_DATE = "consent_date_";
+    private static final long CONSENT_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - optimized for better UX
 
     public interface ConsentCallback {
         void onConsentGiven();
@@ -46,10 +47,10 @@ public class AdConsentManager {
      * Show consent dialog for spin feature
      */
     public static void showSpinConsentDialog(Activity activity, ConsentCallback callback) {
-//        if (hasRecentConsent(activity, "spin")) {
-//            callback.onConsentGiven();
-//            return;
-//        }
+        if (hasRecentConsent(activity, "spin")) {
+            callback.onConsentGiven();
+            return;
+        }
 
         showConsentDialog(activity,
                 "Spin Wheel Reward",
@@ -131,7 +132,7 @@ public class AdConsentManager {
         TextView dialogMessage = dialogView.findViewById(R.id.consentDialogMessage);
         Button watchAdButton = dialogView.findViewById(R.id.watchAdButton);
         Button skipButton = dialogView.findViewById(R.id.skipButton);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+        TextView cancelButton = dialogView.findViewById(R.id.cancelButton);
 
         dialogTitle.setText(title);
         dialogMessage.setText(message);
@@ -180,15 +181,14 @@ public class AdConsentManager {
     }
 
     /**
-     * Check if user has given recent consent (within 1 hour)
+     * Check if user has given recent consent (within 30 minutes)
      */
     private static boolean hasRecentConsent(Context context, String consentType) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         long consentDate = prefs.getLong(KEY_CONSENT_DATE + consentType, 0);
         boolean consentGiven = prefs.getBoolean(KEY_CONSENT_GIVEN + consentType, false);
 
-        long oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
-        boolean isRecent = (System.currentTimeMillis() - consentDate) < oneHour;
+        boolean isRecent = (System.currentTimeMillis() - consentDate) < CONSENT_CACHE_DURATION;
 
         return consentGiven && isRecent;
     }

@@ -38,7 +38,7 @@ public class AdManager {
     private static final long RETRY_BASE_DELAY = 30 * 1000; // 30 seconds base retry delay
     private static final int MAX_RETRIES = 2;
     private static final int MAX_DAILY_REQUESTS = 200; // Conservative daily limit
-    private static final long AD_EXPIRY_TIME = 10 * 60 * 1000; // 15 minutes
+    private static final long AD_EXPIRY_TIME = 55 * 60 * 1000; // 55 minutes
 
 
     // Thread-safe collections
@@ -68,7 +68,8 @@ public class AdManager {
      * Load a rewarded ad with rate limiting and smart retry logic
      */
     public void loadRewardedAd(Context context, String adUnitId, AdLoadCallback callback) {
-        if (!canLoadAd(context, adUnitId)) {
+        final Context applicationContext = context.getApplicationContext();
+        if (!canLoadAd(applicationContext, adUnitId)) {
             Log.d(TAG, "Cannot load ad for " + adUnitId + " - rate limited or conditions not met");
             if (callback != null) {
                 callback.onAdLoadFailed("Rate limited or already loading");
@@ -93,7 +94,7 @@ public class AdManager {
         }
 
         // Record the request
-        recordAdRequest(context);
+        recordAdRequest(applicationContext);
         loadingStates.put(adUnitId, true);
         lastLoadTimes.put(adUnitId, System.currentTimeMillis());
 
@@ -101,7 +102,7 @@ public class AdManager {
 
         AdRequest adRequest = new AdRequest.Builder().build();
 
-        RewardedAd.load(context, adUnitId, adRequest, new RewardedAdLoadCallback() {
+        RewardedAd.load(applicationContext, adUnitId, adRequest, new RewardedAdLoadCallback() {
             @Override
             public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
                 Log.e(TAG, "Ad failed to load for " + adUnitId + ": " + loadAdError.getMessage());
@@ -119,9 +120,7 @@ public class AdManager {
                     Log.d(TAG, "Retrying ad load for " + adUnitId + " in " + delay + "ms (attempt " + retryCount + ")");
 
                     new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        if (context instanceof Activity && !((Activity) context).isDestroyed()) {
-                            loadRewardedAd(context, adUnitId, callback);
-                        }
+                        loadRewardedAd(applicationContext, adUnitId, callback);
                     }, delay);
                 } else {
                     Log.e(TAG, "Max retries reached for " + adUnitId);
@@ -151,8 +150,8 @@ public class AdManager {
      * Show a rewarded ad with proper lifecycle management
      */
     public void showRewardedAd(Activity activity, String adUnitId, AdShowCallback callback) {
-        if (activity.isDestroyed() || activity.isFinishing()) {
-            Log.w(TAG, "Activity is destroyed/finishing, cannot show ad");
+        if (activity == null || activity.isDestroyed() || activity.isFinishing()) {
+            Log.w(TAG, "Activity is null/destroyed/finishing, cannot show ad");
             if (callback != null) {
                 callback.onAdNotAvailable();
             }
@@ -162,18 +161,70 @@ public class AdManager {
         RewardedAd ad = adCache.get(adUnitId);
 
         if (ad == null || isAdExpired(adUnitId)) {
-            Log.w(TAG, "No valid ad available for " + adUnitId);
+            Log.w(TAG, "No valid ad available for " + adUnitId + ", attempting to load...");
             if (isAdExpired(adUnitId)) {
                 adCache.remove(adUnitId);
                 adLoadTimes.remove(adUnitId);
             }
-            if (callback != null) {
-                callback.onAdNotAvailable();
-            }
+
+            // Try to load the ad instead of just returning
+            loadAndShowAd(activity, adUnitId, callback);
             return;
         }
 
+        showAdInternal(activity, ad, adUnitId, callback);
+    }
+
+    /**
+     * Load and then show an ad
+     */
+    private void loadAndShowAd(Activity activity, String adUnitId, AdShowCallback callback) {
+        Log.d(TAG, "Loading ad before showing for " + adUnitId);
+
+        // Force load by clearing rate limit for this specific request
+        lastLoadTimes.remove(adUnitId);
+        loadingStates.put(adUnitId, false);
+
+        loadRewardedAd(activity, adUnitId, new AdLoadCallback() {
+            @Override
+            public void onAdLoaded() {
+                if (activity.isDestroyed() || activity.isFinishing()) {
+                    Log.w(TAG, "Activity destroyed while loading ad");
+                    if (callback != null) {
+                        callback.onAdNotAvailable();
+                    }
+                    return;
+                }
+
+                RewardedAd ad = adCache.get(adUnitId);
+                if (ad != null) {
+                    showAdInternal(activity, ad, adUnitId, callback);
+                } else {
+                    Log.e(TAG, "Ad loaded but not found in cache for " + adUnitId);
+                    if (callback != null) {
+                        callback.onAdNotAvailable();
+                    }
+                }
+            }
+
+            @Override
+            public void onAdLoadFailed(String error) {
+                Log.e(TAG, "Failed to load ad for showing: " + error);
+                if (callback != null) {
+                    callback.onAdNotAvailable();
+                }
+            }
+        });
+    }
+
+    /**
+     * Internal method to actually show the ad
+     */
+    private void showAdInternal(Activity activity, RewardedAd ad, String adUnitId, AdShowCallback callback) {
         Log.d(TAG, "Showing ad for " + adUnitId);
+
+        // Suppress app open ads while rewarded ad is showing
+        suppressAppOpenAds(activity, true);
 
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
             @Override
@@ -189,6 +240,8 @@ public class AdManager {
                 Log.e(TAG, "Ad failed to show for " + adUnitId + ": " + adError.getMessage());
                 adCache.remove(adUnitId);
                 adLoadTimes.remove(adUnitId);
+                // Re-enable app open ads
+                suppressAppOpenAds(activity, false);
                 if (callback != null) {
                     callback.onAdShowFailed(adError.getMessage());
                 }
@@ -199,6 +252,10 @@ public class AdManager {
                 Log.d(TAG, "Ad dismissed for " + adUnitId);
                 adCache.remove(adUnitId);
                 adLoadTimes.remove(adUnitId);
+                // Re-enable app open ads after a short delay to prevent immediate trigger
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    suppressAppOpenAds(activity, false);
+                }, 1000);
                 if (callback != null) {
                     callback.onAdDismissed();
                 }
@@ -211,6 +268,21 @@ public class AdManager {
                 callback.onUserEarnedReward(rewardItem);
             }
         });
+    }
+
+    /**
+     * Helper method to suppress/enable app open ads
+     */
+    private void suppressAppOpenAds(Activity activity, boolean suppress) {
+        try {
+            if (activity.getApplication() instanceof LynxApplication) {
+                LynxApplication app = (LynxApplication) activity.getApplication();
+                AppOpenAdManager.getInstance(app).setSuppressAppOpenAds(suppress);
+                Log.d(TAG, "App open ads suppressed: " + suppress);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error suppressing app open ads", e);
+        }
     }
 
     /**

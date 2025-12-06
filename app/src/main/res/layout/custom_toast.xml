@@ -4,15 +4,18 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:background="@drawable/toast_background"
+    android:background="@drawable/soft_card_background"
     android:orientation="horizontal"
-    android:padding="16dp"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
     android:gravity="center_vertical">
 
     <TextView
         android:id="@+id/toast_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:textSize="14sp" />
+        android:textColor="@color/textPrimary"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"/>
 </LinearLayout>
+

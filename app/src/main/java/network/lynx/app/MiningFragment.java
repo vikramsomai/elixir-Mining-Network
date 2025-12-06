@@ -286,69 +286,17 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
     private void proceedWithMiningAd() {
         if (!isAdded() || adManager == null) return;
 
-        if (adManager.isAdReady(AdManager.AD_UNIT_MINING)) {
-            showMiningRewardedAd();
-        } else {
-            startButton.setEnabled(false);
-            Context context = getSafeContext();
-            if (context != null) {
-                adManager.loadRewardedAd(context, AdManager.AD_UNIT_MINING, new AdManager.AdLoadCallback() {
-                    @Override
-                    public void onAdLoaded() {
-                        if (isAdded()) {
-                            showMiningRewardedAd();
-                        }
-                    }
-
-                    @Override
-                    public void onAdLoadFailed(String error) {
-                        if (isAdded()) {
-                            Context ctx = getSafeContext();
-                            if (ctx != null) {
-                                ToastUtils.showInfo(ctx, "Ad not available. Starting slower mining.");
-                            }
-                            if (boostManager != null) {
-                                boostManager.setAdWatched(false);
-                            }
-                            startMining();
-                            startButton.setEnabled(true);
-                        }
-                    }
-                });
-            }
-        }
+        // showRewardedAd will automatically load if not ready
+        startButton.setEnabled(false);
+        showMiningRewardedAd();
     }
 
     private void proceedWithBoostAd() {
         if (!isAdded() || adManager == null) return;
 
-        if (adManager.isAdReady(AdManager.AD_UNIT_BOOST)) {
-            showBoostRewardedAd();
-        } else {
-            boostCard.setEnabled(false);
-            Context context = getSafeContext();
-            if (context != null) {
-                adManager.loadRewardedAd(context, AdManager.AD_UNIT_BOOST, new AdManager.AdLoadCallback() {
-                    @Override
-                    public void onAdLoaded() {
-                        if (isAdded()) {
-                            showBoostRewardedAd();
-                        }
-                    }
-
-                    @Override
-                    public void onAdLoadFailed(String error) {
-                        if (isAdded()) {
-                            Context ctx = getSafeContext();
-                            if (ctx != null) {
-                                ToastUtils.showInfo(ctx, "Ad not available. Try again later.");
-                            }
-                            boostCard.setEnabled(true);
-                        }
-                    }
-                });
-            }
-        }
+        // showRewardedAd will automatically load if not ready
+        boostCard.setEnabled(false);
+        showBoostRewardedAd();
     }
 
     private void showMiningRewardedAd() {

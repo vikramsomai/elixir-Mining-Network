@@ -11,8 +11,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +19,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,7 +27,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
-import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
@@ -46,14 +44,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -66,11 +63,10 @@ public class HomeFragment extends Fragment {
     private TextView textView;
     private ImageView copyAddress;
     private MaterialButton claimbtn;
-    private CardView spinnerView;
+    private LinearLayout spinnerView, boostCard;
     private GridView gridView;
     private ImageView profilePic;
     private TextView countStreak, TotalStreak;
-    private ViewPager2 viewPager;
 
     // Firebase and Authentication
     private DatabaseReference databaseReference;
@@ -80,8 +76,6 @@ public class HomeFragment extends Fragment {
 
     // Tracked realtime listeners and refs
     private ValueEventListener userValueListener;
-    private ValueEventListener bannersValueListener;
-    private DatabaseReference bannersRef;
 
     // Data Variables
     private String todayDate;
@@ -97,11 +91,6 @@ public class HomeFragment extends Fragment {
     private long rewardClaimedTime;
     private final long rewardCooldownMillis = 24L * 60L * 60L * 1000L; // 24 hours, explicit long
 
-    // Banner Management
-    private List<Banner> bannerList = new ArrayList<>();
-    private BannerAdapter bannerAdapter;
-    private Handler bannerHandler;
-    private Runnable bannerRunnable;
 
     // NEW: TaskManager integration
     private TaskManager taskManager;
@@ -127,7 +116,6 @@ public class HomeFragment extends Fragment {
 
         initializeViews();
         setupUserInterface();
-        setupBannerCarousel();
         setupGridView();
         setupClickListeners();
         loadInitialData();
@@ -180,8 +168,8 @@ public class HomeFragment extends Fragment {
         copyAddress = view.findViewById(R.id.copyAddress);
         profilePic = view.findViewById(R.id.profilePic);
         spinnerView = view.findViewById(R.id.spinWheelCard);
+        boostCard = view.findViewById(R.id.boostCard);
         textView = view.findViewById(R.id.cryptoAddress);
-        viewPager = view.findViewById(R.id.viewPager);
     }
 
     private void setupUserInterface() {
@@ -204,15 +192,30 @@ public class HomeFragment extends Fragment {
         String cachedCount = sharedPreferences.getString("streakCount", "0");
         String cachedTotal = sharedPreferences.getString("totalStreak", "0");
 
+        // Show cached username or fetch from Firebase user display name
         if (!cachedName.isEmpty() && !cachedName.equals("none")) {
             if (username != null) username.setText(cachedName);
             if (imageView != null) imageView.setHash(cachedName.hashCode());
-        } else if (username != null) {
-            username.setText("Loading...");
+        } else {
+            // Try to get display name from Firebase Auth
+            if (currentUser != null && currentUser.getDisplayName() != null && !currentUser.getDisplayName().isEmpty()) {
+                String displayName = currentUser.getDisplayName();
+                if (username != null) username.setText(displayName);
+                if (imageView != null) imageView.setHash(displayName.hashCode());
+                // Cache it
+                sharedPreferences.edit().putString("username", displayName).apply();
+            } else if (currentUser != null && currentUser.getEmail() != null) {
+                // Use email prefix as fallback
+                String emailName = currentUser.getEmail().split("@")[0];
+                if (username != null) username.setText(emailName);
+                if (imageView != null) imageView.setHash(emailName.hashCode());
+            } else {
+                if (username != null) username.setText("User");
+            }
         }
 
         if (TotalStreak != null) TotalStreak.setText(cachedCount);
-        if (countStreak != null) countStreak.setText(String.format(Locale.getDefault(), "%s LYX", cachedTotal));
+        if (countStreak != null) countStreak.setText(String.format(Locale.getDefault(), "+%s LYX", cachedTotal));
     }
 
     private void loadProfilePicture() {
@@ -232,59 +235,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void setupBannerCarousel() {
-        bannerAdapter = new BannerAdapter(getContext(), bannerList);
-        if (viewPager != null) viewPager.setAdapter(bannerAdapter);
-        bannerHandler = new Handler(Looper.getMainLooper());
-
-        bannerRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (isAdded() && !bannerList.isEmpty() && viewPager != null) {
-                        int currentItem = viewPager.getCurrentItem();
-                        int nextItem = (currentItem + 1) % bannerList.size();
-                        viewPager.setCurrentItem(nextItem, true);
-                        bannerHandler.postDelayed(this, 3000);
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error in ViewPager runnable: " + e.getMessage());
-                }
-            }
-        };
-
-        bannerHandler.postDelayed(bannerRunnable, 3000);
-        loadBannersFromFirebase();
-    }
-
-    private void loadBannersFromFirebase() {
-        bannersRef = FirebaseDatabase.getInstance().getReference("banners");
-
-        // Remove existing listener if any
-        if (bannersValueListener != null) {
-            bannersRef.removeEventListener(bannersValueListener);
-        }
-
-        // OPTIMIZATION: Use single value event listener - banners don't need realtime updates
-        bannersValueListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (!isAdded()) return;
-                bannerList.clear();
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Banner banner = snapshot.getValue(Banner.class);
-                    if (banner != null) bannerList.add(banner);
-                }
-                if (bannerAdapter != null) bannerAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                if (isAdded()) Log.e(TAG, "Failed to load banners: " + databaseError.getMessage());
-            }
-        };
-        bannersRef.addListenerForSingleValueEvent(bannersValueListener);
-    }
 
     private void setupGridView() {
         String[] optionName = {"LeaderBoard", "Blogs", "Faqs"};
@@ -316,6 +266,10 @@ public class HomeFragment extends Fragment {
             if (isAdded()) startActivity(new Intent(requireActivity(), spinActivity.class));
         });
 
+        if (boostCard != null) boostCard.setOnClickListener(v -> {
+            if (isAdded()) startActivity(new Intent(requireActivity(), BoostActivity.class));
+        });
+
         if (imageView != null) imageView.setOnClickListener(v -> openProfileEdit());
         if (profilePic != null) profilePic.setOnClickListener(v -> openProfileEdit());
         if (claimbtn != null) claimbtn.setOnClickListener(v -> handleClaimButtonClick());
@@ -326,114 +280,197 @@ public class HomeFragment extends Fragment {
     }
 
     private void handleClaimButtonClick() {
-        if (!isAdded() || isProcessingReward) return;
-        if (!canClaimReward()) return;
-        if (hasClaimedToday()) {
-            ToastUtils.showInfo(getContext(), "You have already claimed your reward today!");
+        // Enhanced null safety and state checks to prevent crashes
+        if (!isAdded() || getContext() == null || getActivity() == null) {
+            Log.w(TAG, "Fragment not properly attached, cannot process claim");
             return;
         }
 
-        adManager.recordFeatureUsage(requireContext(), AdManager.AD_UNIT_CHECK_IN);
+        if (isProcessingReward) {
+            Log.d(TAG, "Already processing reward, ignoring click");
+            return;
+        }
 
-        AdConsentManager.showCheckInConsentDialog(requireActivity(), new AdConsentManager.ConsentCallback() {
-            @Override
-            public void onConsentGiven() {
-                proceedWithAdReward();
+        if (!canClaimReward()) {
+            return;
+        }
+
+        if (hasClaimedToday()) {
+            showSafeToast("You have already claimed your reward today!");
+            return;
+        }
+
+        try {
+            // Mark as processing early to prevent double-clicks
+            isProcessingReward = true;
+
+            if (adManager != null) {
+                adManager.recordFeatureUsage(requireContext(), AdManager.AD_UNIT_CHECK_IN);
             }
 
-            @Override
-            public void onConsentDenied() {
-                ToastUtils.showError(getContext(), "Check-in cancelled");
+            AdConsentManager.showCheckInConsentDialog(requireActivity(), new AdConsentManager.ConsentCallback() {
+                @Override
+                public void onConsentGiven() {
+                    if (isAdded() && getActivity() != null) {
+                        proceedWithAdReward();
+                    } else {
+                        isProcessingReward = false;
+                    }
+                }
+
+                @Override
+                public void onConsentDenied() {
+                    isProcessingReward = false;
+                    showSafeToast("Check-in cancelled");
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in handleClaimButtonClick", e);
+            isProcessingReward = false;
+            showSafeToast("An error occurred. Please try again.");
+        }
+    }
+
+    /**
+     * Thread-safe toast helper that checks fragment state
+     */
+    private void showSafeToast(String message) {
+        if (!isAdded() || getContext() == null) return;
+        try {
+            Context context = getContext();
+            if (context != null) {
+                ToastUtils.showInfo(context, message);
             }
-        });
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to show toast: " + e.getMessage());
+        }
     }
 
     private void proceedWithAdReward() {
-        if (adManager.isAdReady(AdManager.AD_UNIT_CHECK_IN)) {
-            showRewardedAd();
-        } else {
+        if (!isAdded() || getContext() == null || getActivity() == null) {
+            Log.w(TAG, "Fragment not attached, cannot proceed with ad reward");
+            isProcessingReward = false;
+            return;
+        }
+
+        if (adManager == null) {
+            Log.e(TAG, "AdManager is null");
+            isProcessingReward = false;
+            showSafeToast("Unable to load ad. Please try again.");
+            resetClaimButton();
+            return;
+        }
+
+        try {
+            // showRewardedAd will automatically load if not ready
             if (claimbtn != null) {
                 claimbtn.setText("Loading Ad...");
                 claimbtn.setEnabled(false);
             }
-            adManager.loadRewardedAd(requireContext(), AdManager.AD_UNIT_CHECK_IN, new AdManager.AdLoadCallback() {
-                @Override
-                public void onAdLoaded() {
-                    if (isAdded()) {
-                        showRewardedAd();
-                    }
-                }
-
-                @Override
-                public void onAdLoadFailed(String error) {
-                    if (isAdded()) {
-                        ToastUtils.showError(getContext(), "Ad not available. Please try again later.");
-                        resetClaimButton();
-                    }
-                }
-            });
+            showRewardedAd();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in proceedWithAdReward", e);
+            isProcessingReward = false;
+            resetClaimButton();
         }
     }
 
     private void showRewardedAd() {
-        if (!isAdded()) return;
-        isProcessingReward = true;
-        if (claimbtn != null) {
-            claimbtn.setText("Loading Ad...");
-            claimbtn.setEnabled(false);
+        if (!isAdded() || getActivity() == null || getActivity().isFinishing()) {
+            Log.w(TAG, "Cannot show ad - fragment/activity not in valid state");
+            isProcessingReward = false;
+            return;
         }
 
-        adManager.showRewardedAd(requireActivity(), AdManager.AD_UNIT_CHECK_IN, new AdManager.AdShowCallback() {
-            @Override
-            public void onAdShowed() {
-                Log.d(TAG, "Check-in ad showed");
+        if (adManager == null) {
+            Log.e(TAG, "AdManager is null in showRewardedAd");
+            isProcessingReward = false;
+            resetClaimButton();
+            return;
+        }
+
+        try {
+            if (claimbtn != null) {
+                claimbtn.setText("Loading Ad...");
+                claimbtn.setEnabled(false);
             }
 
-            @Override
-            public void onAdShowFailed(String error) {
-                if (isAdded()) {
-                    ToastUtils.showError(getContext(), "Ad failed to show. Please try again later.");
-                    resetClaimButton();
+            adManager.showRewardedAd(requireActivity(), AdManager.AD_UNIT_CHECK_IN, new AdManager.AdShowCallback() {
+                @Override
+                public void onAdShowed() {
+                    Log.d(TAG, "Check-in ad showed");
                 }
-            }
 
-            @Override
-            public void onAdDismissed() {
-                Log.d(TAG, "Check-in ad dismissed without reward");
-                if (isAdded()) {
-                    Toast.makeText(getContext(), "Ad was not completed. Please watch the full ad to claim your reward.", Toast.LENGTH_SHORT).show();
-                    resetClaimButton();
+                @Override
+                public void onAdShowFailed(String error) {
+                    Log.e(TAG, "Ad show failed: " + error);
+                    if (isAdded()) {
+                        showSafeToast("Ad failed to show. Please try again later.");
+                        resetClaimButton();
+                    }
+                    isProcessingReward = false;
                 }
-            }
 
-            @Override
-            public void onAdNotAvailable() {
-                if (isAdded()) {
-                    Toast.makeText(getContext(), "Ad not available. Please try again later.", Toast.LENGTH_SHORT).show();
-                    resetClaimButton();
+                @Override
+                public void onAdDismissed() {
+                    Log.d(TAG, "Check-in ad dismissed without reward");
+                    if (isAdded()) {
+                        showSafeToast("Ad was not completed. Please watch the full ad to claim your reward.");
+                        resetClaimButton();
+                    }
+                    isProcessingReward = false;
                 }
-            }
 
-            @Override
-            public void onUserEarnedReward(com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
-                if (isAdded()) {
-                    grantCheckInReward();
+                @Override
+                public void onAdNotAvailable() {
+                    Log.w(TAG, "Ad not available");
+                    if (isAdded()) {
+                        showSafeToast("Ad not available. Please try again later.");
+                        resetClaimButton();
+                    }
+                    isProcessingReward = false;
                 }
-            }
-        });
+
+                @Override
+                public void onUserEarnedReward(com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
+                    Log.d(TAG, "User earned reward: " + rewardItem.getAmount());
+                    if (isAdded() && getActivity() != null && !getActivity().isFinishing()) {
+                        // Run on UI thread to ensure safe UI updates
+                        requireActivity().runOnUiThread(() -> {
+                            if (isAdded()) {
+                                grantCheckInReward();
+                            }
+                        });
+                    } else {
+                        isProcessingReward = false;
+                    }
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Exception in showRewardedAd", e);
+            isProcessingReward = false;
+            resetClaimButton();
+        }
     }
 
     private boolean canClaimReward() {
-        long currentTime = System.currentTimeMillis();
-        long timeSinceLastClaim = currentTime - rewardClaimedTime;
-        if (timeSinceLastClaim < rewardCooldownMillis && rewardClaimedTime > 0) {
-            long remainingTime = rewardCooldownMillis - timeSinceLastClaim;
-            long hours = remainingTime / (1000 * 60 * 60);
-            long minutes = (remainingTime / (1000 * 60)) % 60;
-            ToastUtils.showSuccess(getContext(), String.format("Please wait %d hours and %d minutes before claiming again!", hours, minutes));
-            return false;
+        try {
+            long currentTime = System.currentTimeMillis();
+            long timeSinceLastClaim = currentTime - rewardClaimedTime;
+
+            if (timeSinceLastClaim < rewardCooldownMillis && rewardClaimedTime > 0) {
+                long remainingTime = rewardCooldownMillis - timeSinceLastClaim;
+                long hours = remainingTime / (1000 * 60 * 60);
+                long minutes = (remainingTime / (1000 * 60)) % 60;
+                showSafeToast(String.format(Locale.getDefault(),
+                    "Please wait %d hours and %d minutes before claiming again!", hours, minutes));
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Error in canClaimReward", e);
+            return true; // Allow claim attempt on error
         }
-        return true;
     }
 
     private boolean hasClaimedToday() {
@@ -444,37 +481,59 @@ public class HomeFragment extends Fragment {
     }
 
     private void grantCheckInReward() {
-        if (!isAdded()) {
+        if (!isAdded() || getActivity() == null) {
             Log.w(TAG, "Fragment detached, cannot grant check-in reward");
+            isProcessingReward = false;
             return;
         }
 
         Log.d(TAG, "Granting check-in reward");
-        if (claimbtn != null) {
-            claimbtn.setText("Processing...");
-            claimbtn.setEnabled(false);
+
+        try {
+            if (claimbtn != null) {
+                claimbtn.setText("Processing...");
+                claimbtn.setEnabled(false);
+            }
+
+            rewardClaimedTime = System.currentTimeMillis();
+            saveRewardClaimedTime();
+
+            String today = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(new Date());
+            if (sharedPreferences != null) {
+                sharedPreferences.edit().putString("lastClaimDate", today).apply();
+            }
+
+            // Sync with TaskManager safely
+            if (taskManager != null) {
+                try {
+                    taskManager.syncWithHomeFragmentCheckin();
+                    Log.d(TAG, "Synced check-in with TaskManager for boost integration");
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to sync with TaskManager", e);
+                }
+            }
+
+            claimToken();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in grantCheckInReward", e);
+            isProcessingReward = false;
+            resetClaimButton();
+            showSafeToast("Error processing reward. Please try again.");
         }
-
-        rewardClaimedTime = System.currentTimeMillis();
-        saveRewardClaimedTime();
-
-        String today = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(new Date());
-        sharedPreferences.edit().putString("lastClaimDate", today).apply();
-
-        if (taskManager != null) {
-            taskManager.syncWithHomeFragmentCheckin();
-            Log.d(TAG, "Synced check-in with TaskManager for boost integration");
-        }
-
-        claimToken();
     }
 
     private void resetClaimButton() {
-        if (claimbtn != null && isAdded()) {
-            claimbtn.setText("Check in");
-            claimbtn.setEnabled(true);
-        }
         isProcessingReward = false;
+
+        if (!isAdded() || getActivity() == null) return;
+
+        // Ensure UI updates happen on main thread
+        requireActivity().runOnUiThread(() -> {
+            if (claimbtn != null && isAdded()) {
+                claimbtn.setText("Check in");
+                claimbtn.setEnabled(true);
+            }
+        });
     }
 
     private void loadInitialData() {
@@ -969,9 +1028,6 @@ public class HomeFragment extends Fragment {
         smartPreloadAds();
         fetchUserDataFromFirebase();
         checkIfTokenClaimed();
-        if (bannerHandler != null && bannerRunnable != null && bannerList.size() > 0) {
-            bannerHandler.postDelayed(bannerRunnable, 3000);
-        }
     }
 
     @Override
@@ -988,9 +1044,6 @@ public class HomeFragment extends Fragment {
                 editor.apply();
             }
         }
-        if (bannerHandler != null) {
-            bannerHandler.removeCallbacksAndMessages(null);
-        }
     }
 
     @Override
@@ -1002,18 +1055,10 @@ public class HomeFragment extends Fragment {
             countdownTimer.cancel();
             countdownTimer = null;
         }
-        if (bannerHandler != null) {
-            bannerHandler.removeCallbacksAndMessages(null);
-            bannerHandler = null;
-        }
-        bannerRunnable = null;
         // Remove tracked realtime listeners to avoid traffic/leaks
         try {
             if (databaseReference != null && userValueListener != null) databaseReference.removeEventListener(userValueListener);
         } catch (Exception e) { Log.w(TAG, "Failed to remove user listener", e); }
-        try {
-            if (bannersRef != null && bannersValueListener != null) bannersRef.removeEventListener(bannersValueListener);
-        } catch (Exception e) { Log.w(TAG, "Failed to remove banners listener", e); }
         view = null;
     }
 

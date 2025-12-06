@@ -4,64 +4,82 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@drawable/dialog_background">
-
+    android:background="@drawable/soft_card_background">
 
     <TextView
         android:id="@+id/consentDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Watch Ad for Reward?"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="@color/text_primary"
+        android:textColor="@color/textPrimary"
         android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginBottom="12dp"/>
 
     <TextView
         android:id="@+id/consentDialogMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Watch a short ad to unlock your reward!"
-        android:textSize="14sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="24dp" />
+        android:textSize="13sp"
+        android:textColor="@color/textSecondary"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="24dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center">
+        android:orientation="vertical">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/watchAdButton"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Watch Ad &amp; Get Reward"
-            android:textColor="@android:color/white"
-            android:background="@drawable/button_primary"
+            android:text="Watch Ad"
+            android:textColor="@color/white"
+            android:textSize="14sp"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:textAllCaps="false"
+            android:fontFamily="sans-serif-medium"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="12dp"
+            app:elevation="0dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/skipButton"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:text="Continue Without Ad"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/button_secondary"
-            android:layout_marginBottom="8dp"
-            android:visibility="gone" />
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"
+            android:textAllCaps="false"
+            android:fontFamily="sans-serif-medium"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:visibility="gone"
+            app:backgroundTint="@color/cardBackgroundElevated"
+            app:cornerRadius="12dp"
+            app:elevation="0dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
 
-        <Button
+        <TextView
             android:id="@+id/cancelButton"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Cancel"
-            android:textColor="@color/text_secondary"
-            android:background="?android:attr/selectableItemBackground"
-            android:padding="12dp" />
-
+            android:textColor="@color/textTertiary"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:padding="8dp"/>
     </LinearLayout>
-
 </LinearLayout>
+
