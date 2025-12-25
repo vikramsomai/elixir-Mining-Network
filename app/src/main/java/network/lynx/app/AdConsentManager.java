@@ -1,5 +1,4 @@
 package network.lynx.app;
-import static com.google.common.io.Resources.getResource;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -7,8 +6,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
+
+import com.google.android.material.button.MaterialButton;
 
 public class AdConsentManager {
     private static final String TAG = "AdConsentManager";
@@ -130,8 +130,8 @@ public class AdConsentManager {
 
         TextView dialogTitle = dialogView.findViewById(R.id.consentDialogTitle);
         TextView dialogMessage = dialogView.findViewById(R.id.consentDialogMessage);
-        Button watchAdButton = dialogView.findViewById(R.id.watchAdButton);
-        Button skipButton = dialogView.findViewById(R.id.skipButton);
+        MaterialButton watchAdButton = dialogView.findViewById(R.id.watchAdButton);
+        MaterialButton skipButton = dialogView.findViewById(R.id.skipButton);
         TextView cancelButton = dialogView.findViewById(R.id.cancelButton);
 
         dialogTitle.setText(title);

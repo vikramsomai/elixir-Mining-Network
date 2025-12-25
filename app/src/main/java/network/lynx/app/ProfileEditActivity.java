@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -79,6 +80,22 @@ public class ProfileEditActivity extends AppCompatActivity {
 
     // Fetch user profile data from Firebase
     private void loadUserProfile() {
+        String userId = sharedPreferences.getString("userid", null);
+
+        // OPTIMIZATION: Try to load cached referral code first for immediate display
+        if (userId != null) {
+            String cachedCode = ReferralUtils.getCachedReferralCode(this, userId);
+            if (cachedCode != null && !cachedCode.isEmpty() && !cachedCode.equals("XXXXXX")) {
+                referralCodeView.setText(cachedCode);
+            }
+
+            // Also get cached email
+            String cachedEmail = sharedPreferences.getString("email", null);
+            if (cachedEmail != null && !cachedEmail.isEmpty()) {
+                emailView.setText(cachedEmail);
+            }
+        }
+
         if (databaseReference != null) {
             databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -90,8 +107,22 @@ public class ProfileEditActivity extends AppCompatActivity {
                         if (email != null) {
                             emailView.setText(email);
                         }
-                        if (referralCode != null) {
+
+                        // If referral code is null or placeholder, generate a new one
+                        if (referralCode == null || referralCode.isEmpty() || referralCode.equals("XXXXXX")) {
+                            String usrId = sharedPreferences.getString("userid", null);
+                            if (usrId != null) {
+                                referralCode = generateReferralCode(usrId);
+                                // Save to Firebase
+                                databaseReference.child("referralCode").setValue(referralCode);
+                            }
+                        }
+
+                        if (referralCode != null && referralCodeView != null) {
                             referralCodeView.setText(referralCode);
+                            // Save to ReferralUtils cache
+                            String usrId = sharedPreferences.getString("userid", null);
+                            ReferralUtils.saveProfileToPrefs(ProfileEditActivity.this, usrId, null, email, referralCode);
                         }
                     }
                 }
@@ -101,6 +132,26 @@ public class ProfileEditActivity extends AppCompatActivity {
                     ToastUtils.showInfo(ProfileEditActivity.this, "Failed to load profile");
                 }
             });
+        }
+    }
+
+    /**
+     * Generate a unique referral code from user ID
+     */
+    private String generateReferralCode(String uid) {
+        if (uid == null || uid.isEmpty()) {
+            return "LYNX" + System.currentTimeMillis() % 10000;
+        }
+        try {
+            String encoded = android.util.Base64.encodeToString(uid.getBytes(), android.util.Base64.NO_WRAP);
+            String code = encoded.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+            if (code.length() >= 6) {
+                return code.substring(0, 6);
+            } else {
+                return code + uid.hashCode() % 1000;
+            }
+        } catch (Exception e) {
+            return "LYX" + Math.abs(uid.hashCode() % 100000);
         }
     }
 
@@ -135,17 +186,71 @@ public class ProfileEditActivity extends AppCompatActivity {
     }
 
     private void logoutUser() {
-        // Clear shared preferences
         String userId = sharedPreferences.getString("userid", "unknown_user");
 
-// Clear per-user preference
-        SharedPreferences userCheckinPrefs = getSharedPreferences("user_checkin_" + userId, MODE_PRIVATE);
-        userCheckinPrefs.edit().clear().apply();
+        // Reset all singleton manager instances to prevent data leaks
+        try {
+            BoostManager.resetInstance();
+            MiningSyncManager.resetInstance();
+            MiningStreakManager.resetInstance();
+            AchievementManager.resetInstance();
+            HourlyBonusManager.resetInstance();
+            FirebaseManager.resetInstance();
+            Log.d("ProfileEditActivity", "All singleton managers reset");
+        } catch (Exception e) {
+            Log.e("ProfileEditActivity", "Error resetting managers", e);
+        }
 
-// Clear general user data
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.clear();
-        editor.apply();
+        // Clear ALL user-related SharedPreferences
+        try {
+            // Clear per-user check-in preferences
+            getSharedPreferences("user_checkin_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear mining preferences
+            getSharedPreferences("MiningSync_" + userId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("TokenPrefs_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear boost preferences
+            getSharedPreferences("BoostManager_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear achievement preferences
+            getSharedPreferences("Achievements_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear hourly bonus preferences
+            getSharedPreferences("HourlyBonus_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear lucky number preferences
+            getSharedPreferences("LuckyNumber_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear scratch card preferences
+            getSharedPreferences("ScratchCard_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear mining streak preferences
+            getSharedPreferences("MiningStreak_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear task manager preferences
+            getSharedPreferences("TaskManager_" + userId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear spin preferences
+            getSharedPreferences("spinPrefs_" + userId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("spinPrefs", MODE_PRIVATE).edit().clear().apply(); // Clear old global prefs
+
+            // Clear mining prefs
+            getSharedPreferences("mining_prefs", MODE_PRIVATE).edit().clear().apply();
+
+            // Clear general user data
+            sharedPreferences.edit().clear().apply();
+
+            // ALSO: clear per-user ReferralUtils scoped prefs to avoid overlap when another user logs in on this device
+            try {
+                ReferralUtils.clearUserPrefs(ProfileEditActivity.this, userId);
+            } catch (Exception ignored) {
+            }
+
+            Log.d("ProfileEditActivity", "All user preferences cleared for logout");
+        } catch (Exception e) {
+            Log.e("ProfileEditActivity", "Error clearing preferences", e);
+        }
 
         // Sign out from Firebase
         auth.signOut();
@@ -245,6 +350,17 @@ public class ProfileEditActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.clear();
         editor.apply();
+
+        // Also clear ReferralUtils per-user prefs if possible
+        try {
+            String uid = sharedPreferences.getString("userid", null);
+            if (uid != null) {
+                ReferralUtils.clearUserPrefs(ProfileEditActivity.this, uid);
+            } else {
+                ReferralUtils.clearCurrentUserPrefs(ProfileEditActivity.this);
+            }
+        } catch (Exception ignored) {
+        }
 
         ToastUtils.showInfo(ProfileEditActivity.this, "Account deleted successfully");
         auth.signOut();

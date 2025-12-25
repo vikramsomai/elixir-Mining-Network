@@ -580,4 +580,16 @@ public class BoostManager {
         listeners.clear();
         Log.d(TAG, "BoostManager listeners cleared");
     }
+
+    /**
+     * Reset the singleton instance - call this on logout
+     * This ensures a fresh instance is created for the next user
+     */
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.cleanup();
+            instance = null;
+            Log.d(TAG, "BoostManager instance reset");
+        }
+    }
 }

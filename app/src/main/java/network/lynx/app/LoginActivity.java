@@ -217,12 +217,89 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void saveUserData(FirebaseUser user) {
-        SharedPreferences.Editor editor = getSharedPreferences("userData", MODE_PRIVATE).edit();
-        editor.putString("userid", user.getUid());
+        SharedPreferences prefs = getSharedPreferences("userData", MODE_PRIVATE);
+
+        // FIX: Check if this is a different user - clear old cached data
+        String oldUserId = prefs.getString("userid", null);
+        String newUserId = user.getUid();
+
+        if (oldUserId != null && !oldUserId.equals(newUserId)) {
+            // Different user logging in - clear ALL old user data
+            Log.d(TAG, "Different user detected. Clearing old user data. Old: " + oldUserId + ", New: " + newUserId);
+
+            // Clear old user's specific preferences
+            getSharedPreferences("user_checkin_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("spinPrefs_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("MiningSync_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("TokenPrefs_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("BoostManager_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("Achievements_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("HourlyBonus_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("LuckyNumber_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("ScratchCard_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("MiningStreak_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("TaskManager_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear old user's ReferralUtils prefs
+            ReferralUtils.clearUserPrefs(this, oldUserId);
+
+            // Reset singleton managers to ensure fresh state
+            try {
+                BoostManager.resetInstance();
+                MiningSyncManager.resetInstance();
+                MiningStreakManager.resetInstance();
+                AchievementManager.resetInstance();
+                HourlyBonusManager.resetInstance();
+            } catch (Exception e) {
+                Log.e(TAG, "Error resetting managers during user switch", e);
+            }
+        }
+
+        // Clear old userData prefs and save new user data
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear(); // Clear all old data
+        editor.putString("userid", newUserId);
         editor.putString("email", user.getEmail());
         editor.putString("username", user.getDisplayName());
         editor.putString("profilePicUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
         editor.apply();
+
+        // Generate referral code for immediate local caching
+        String referralCode = generateReferralCode(newUserId);
+
+        // Save to ReferralUtils for centralized access (email, name, referral code)
+        ReferralUtils.saveProfileToPrefs(this, newUserId, user.getDisplayName(), user.getEmail(), referralCode);
+        Log.d(TAG, "Saved user profile to local prefs: " + newUserId + ", email: " + user.getEmail() + ", referralCode: " + referralCode);
+
+        // Ensure user has a referral code in Firebase (for existing users who don't have one)
+        ensureReferralCodeExists(user.getUid());
+    }
+
+    private void ensureReferralCodeExists(String userId) {
+        DatabaseReference userRef = database.getReference("users").child(userId);
+        userRef.child("referralCode").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String existingCode = snapshot.getValue(String.class);
+                if (existingCode == null || existingCode.isEmpty() || existingCode.equals("XXXXXX")) {
+                    // Generate and save a new referral code
+                    String newCode = generateReferralCode(userId);
+                    userRef.child("referralCode").setValue(newCode);
+                    // Also save to local prefs
+                    ReferralUtils.saveProfileToPrefs(LoginActivity.this, userId, null, null, newCode);
+                    Log.d(TAG, "Generated new referral code for user: " + newCode);
+                } else {
+                    // Save existing code to local prefs for quick access
+                    ReferralUtils.saveProfileToPrefs(LoginActivity.this, userId, null, null, existingCode);
+                    Log.d(TAG, "Cached existing referral code: " + existingCode);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Error checking referral code", error.toException());
+            }
+        });
     }
 
     public static String getDisplayName(FirebaseUser user) {
@@ -237,6 +314,16 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     public static String generateReferralCode(String userId) {
-        return Base64.encodeToString(userId.getBytes(), Base64.NO_WRAP).substring(0, 6);
+        try {
+            String encoded = Base64.encodeToString(userId.getBytes(), Base64.NO_WRAP);
+            String cleaned = encoded.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+            if (cleaned.length() >= 6) {
+                return cleaned.substring(0, 6);
+            } else {
+                return cleaned + String.valueOf(Math.abs(userId.hashCode()) % 10000);
+            }
+        } catch (Exception e) {
+            return "LYX" + String.valueOf(Math.abs(userId.hashCode()) % 100000);
+        }
     }
 }

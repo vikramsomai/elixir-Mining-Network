@@ -490,5 +490,17 @@ public class MiningSyncManager {
             notifyCurrentState();
         }
     }
+
+    /**
+     * Reset the singleton instance - call this on logout
+     */
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.stopPeriodicSync();
+            instance.listener = null;
+            instance = null;
+            Log.d(TAG, "MiningSyncManager instance reset");
+        }
+    }
 }
 

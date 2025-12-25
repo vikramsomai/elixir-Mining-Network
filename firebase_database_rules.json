@@ -5,7 +5,27 @@
       ".indexOn": ["totalcoins", "referralCode", "username"],
       "$uid": {
         ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+
+        "referrals": {
+          "$referralId": {
+            ".write": "auth != null"
+          }
+        },
+        "commissions": {
+          ".write": "auth != null"
+        },
+        "referralEarnings": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "dailyLuckyNumber": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$date": {
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
     },
     "daily_quests": {

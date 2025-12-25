@@ -3,54 +3,67 @@ package network.lynx.app;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import java.util.Locale;
 
 public class ReferralFragment extends Fragment {
     private static final String TAG = "ReferralFragment";
 
-    private TextView totalEarned, friendsAdded, referralCode, totalCoinsDisplay;
+    private TextView totalEarned, friendsAdded, referralCode;
     private ImageView backButton, copyButton;
-    private CardView inviteButton, boostCard, boostButton;
+    private MaterialButton inviteButton;
+    private DatabaseReference databaseReference;
     private DatabaseReference userRef;
     private String userId;
     private String currentReferralCode;
     private double totalCommissionEarned = 0.0;
-    private double totalCoins = 0.0;
+    private double referralMiningIncome = 0.0;
     private boolean isBoostActive = false;
+    private SharedPreferences sharedPreferences;
 
-    // Track listener for cleanup
     private ValueEventListener referralListener;
+
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_referral, container, false);
 
         try {
             initializeViews(view);
             setupClickListeners();
-            loadReferralData();
+            checkAndCreateUserIfNeeded(); // Check user exists before loading data
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreateView", e);
-            if (getContext() != null) {
+            // Try to still load data even if initialization had issues
+            if (userId != null && userRef == null) {
+                userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+            }
+            if (userRef != null) {
+                checkAndCreateUserIfNeeded();
+            }
+            // Only show error if we truly can't proceed
+            if (userId == null && getContext() != null) {
                 ToastUtils.showError(getContext(), "Failed to load referral data");
             }
         }
@@ -64,26 +77,143 @@ public class ReferralFragment extends Fragment {
         referralCode = view.findViewById(R.id.referralCode);
         backButton = view.findViewById(R.id.backButton);
         copyButton = view.findViewById(R.id.copyButton);
+        // The layout uses a MaterialButton for invite; use MaterialButton to avoid ClassCastException
         inviteButton = view.findViewById(R.id.inviteButton);
-        boostButton = view.findViewById(R.id.BoostButton);
+        // boostButton = view.findViewById(R.id.BoostButton);
+        sharedPreferences = requireContext().getSharedPreferences("userData", Context.MODE_PRIVATE);
 
-        // NEW: Total coins display (add this to your layout if not present)
-//        totalCoinsDisplay = view.findViewById(R.id.totalCoinsDisplay);
-
-        // Initialize Firebase with error handling
+        // Initialize UI with default values
+        if (totalEarned != null) {
+            totalEarned.setText("0.0000 LYX");
+        }
+        if (friendsAdded != null) {
+            friendsAdded.setText("0");
+        }
         try {
-            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
-                Log.d(TAG, "Firebase initialized successfully");
+            // Initialize exactly like ProfileEditActivity does
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            FirebaseUser currentUser = auth.getCurrentUser();
+
+            // Get user ID from shared preferences (like ProfileEditActivity)
+            userId = sharedPreferences.getString("userid", null);
+            // Fallback to FirebaseAuth if missing
+            if ((userId == null || userId.isEmpty()) && currentUser != null) {
+                userId = currentUser.getUid();
+                sharedPreferences.edit().putString("userid", userId).apply();
+            }
+
+            // CRITICAL: Load cached referral code IMMEDIATELY to prevent "unknown" display
+            if (userId != null && !userId.isEmpty()) {
+                String cachedCode = ReferralUtils.getCachedReferralCode(getContext(), userId);
+                if (cachedCode != null && !cachedCode.isEmpty() && !cachedCode.equals("XXXXXX")) {
+                    currentReferralCode = cachedCode;
+                    if (referralCode != null) {
+                        referralCode.setText(cachedCode);
+                        Log.d(TAG, "Referral code loaded from cache immediately: " + cachedCode);
+                    }
+                } else {
+                    // Generate and cache immediately if not available
+                    String generatedCode = generateReferralCode(userId);
+                    currentReferralCode = generatedCode;
+                    if (referralCode != null) {
+                        referralCode.setText(generatedCode);
+                    }
+                    ReferralUtils.saveProfileToPrefs(getContext(), userId,
+                            sharedPreferences.getString("userName", null),
+                            sharedPreferences.getString("userEmail", null),
+                            generatedCode);
+                    Log.d(TAG, "Generated and cached referral code immediately: " + generatedCode);
+                }
             } else {
-                Log.w(TAG, "User not authenticated");
+                // Show loading placeholder
+                if (referralCode != null) {
+                    referralCode.setText("Loading...");
+                }
+            }
+
+            // Save basic profile info locally to avoid repeated reads
+            if (currentUser != null && userId != null) {
+                String displayName = currentUser.getDisplayName();
+                String email = currentUser.getEmail();
+                // Save whatever info is available now using ReferralUtils
+                ReferralUtils.saveProfileToPrefs(getContext(), userId, displayName, email, currentReferralCode);
+            }
+
+            // Initialize databaseReference if we have userId (even if currentUser is null,
+            // userId in SharedPreferences means user was previously authenticated)
+            if (userId != null && !userId.isEmpty()) {
+                // Initialize databaseReference exactly like ProfileEditActivity
+                databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId);
+                userRef = databaseReference; // Also set userRef for compatibility
+                Log.d(TAG, "Firebase initialized successfully with userId: " + userId);
+            } else {
+                Log.w(TAG, "userId not found in SharedPreferences");
                 if (getContext() != null) {
                     ToastUtils.showError(getContext(), "Please log in to view referral data");
                 }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing Firebase", e);
+            // Try to get userId from SharedPreferences as fallback
+            if (userId == null) {
+                userId = sharedPreferences.getString("userid", null);
+                if (userId != null && !userId.isEmpty()) {
+                    databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId);
+                    userRef = databaseReference;
+
+                    // Still try to load cached code
+                    String cachedCode = ReferralUtils.getCachedReferralCode(getContext(), userId);
+                    if (cachedCode != null && !cachedCode.isEmpty()) {
+                        currentReferralCode = cachedCode;
+                        if (referralCode != null) {
+                            referralCode.setText(cachedCode);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void checkAndCreateUserIfNeeded() {
+        // Ensure sharedPreferences is initialized
+        if (sharedPreferences == null) {
+            if (getContext() != null) {
+                sharedPreferences = requireContext().getSharedPreferences("userData", Context.MODE_PRIVATE);
+            } else {
+                Log.e(TAG, "Cannot check user - context is null");
+                return;
+            }
+        }
+
+        // Ensure databaseReference is initialized before loading
+        if (databaseReference == null) {
+            // Try to initialize databaseReference if we have userId
+            String userId = sharedPreferences.getString("userid", null);
+            if (userId == null || userId.isEmpty()) {
+                FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (currentUser != null) {
+                    userId = currentUser.getUid();
+                    sharedPreferences.edit().putString("userid", userId).apply();
+                }
+            }
+
+            if (userId != null && !userId.isEmpty()) {
+                databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId);
+                userRef = databaseReference;
+                Log.d(TAG, "Initialized databaseReference in checkAndCreateUserIfNeeded: " + userId);
+            } else {
+                Log.w(TAG, "Cannot initialize databaseReference - no userId available");
+                return;
+            }
+        }
+
+        // Use the same simple approach as ProfileEditActivity - just load the profile
+        // This will handle generating the referral code if needed
+        loadUserProfile();
+
+        // Also load additional referral statistics using the direct method
+        if (userRef != null) {
+            loadReferralDataDirect();
         }
     }
 
@@ -91,169 +221,478 @@ public class ReferralFragment extends Fragment {
         if (backButton != null) {
             backButton.setOnClickListener(v -> {
                 if (getActivity() != null) {
-                    getActivity().onBackPressed();
+                    getActivity().getOnBackPressedDispatcher().onBackPressed();
                 }
             });
         }
 
         if (copyButton != null) {
-            copyButton.setOnClickListener(v -> copyReferralCode());
+            copyButton.setOnClickListener(v -> {
+                Log.d(TAG, "Copy button clicked");
+                copyReferralCode();
+            });
         }
 
         if (inviteButton != null) {
-            inviteButton.setOnClickListener(v -> shareInvite());
-        }
-
-        if (boostButton != null) {
-            boostButton.setOnClickListener(v -> openBoostActivity());
-        }
-    }
-
-    // NEW: Safer method to open BoostActivity
-    private void openBoostActivity() {
-        try {
-            // Check if user is authenticated
-            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                if (getContext() != null) {
-                    ToastUtils.showError(getContext(), "Please log in to access boost features");
+            Log.d(TAG, "Setting up invite button click listener");
+            inviteButton.setOnClickListener(v -> {
+                Log.d(TAG, "Invite button clicked!");
+                Context context = getContext();
+                if (context != null) {
+                    // Ensure we have a referral code before sharing
+                    if (currentReferralCode == null || currentReferralCode.isEmpty() || currentReferralCode.equals("Loading...")) {
+                        if (userId != null) {
+                            currentReferralCode = generateReferralCode(userId);
+                            ReferralUtils.saveProfileToPrefs(context, userId, null, null, currentReferralCode);
+                        }
+                    }
+                    ReferralUtils.shareReferral(context);
+                } else {
+                    Log.e(TAG, "Context is null, cannot share");
                 }
-                return;
-            }
-
-            // Check if context is available
-            if (getContext() == null) {
-                Log.e(TAG, "Context is null, cannot start BoostActivity");
-                return;
-            }
-
-            Log.d(TAG, "Opening BoostActivity...");
-            Intent intent = new Intent(getContext(), BoostActivity.class);
-
-            // Add extra data to help with debugging
-            intent.putExtra("source", "ReferralFragment");
-            intent.putExtra("userId", userId);
-
-            startActivity(intent);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error opening BoostActivity", e);
-            if (getContext() != null) {
-                ToastUtils.showError(getContext(), "Failed to open boost activity. Please try again.");
-            }
+            });
+            // Also set clickable and focusable for CardView
+            inviteButton.setClickable(true);
+            inviteButton.setFocusable(true);
+        } else {
+            Log.w(TAG, "inviteButton is null - cannot set click listener");
         }
+
+        // if (boostButton != null) {
+        // boostButton.setOnClickListener(v -> openBoostActivity());
+        // }
     }
+
 
     private void loadReferralData() {
-        if (userRef == null) {
-            Log.w(TAG, "userRef is null, cannot load referral data");
+        loadReferralDataDirect();
+        loadUserProfile();
+
+    }
+
+    private void loadUserProfile() {
+        Log.d(TAG, "loadUserProfile called, databaseReference: " + (databaseReference != null ? "not null" : "null"));
+
+        // Ensure sharedPreferences is initialized
+        if (sharedPreferences == null) {
+            if (getContext() != null) {
+                sharedPreferences = requireContext().getSharedPreferences("userData", Context.MODE_PRIVATE);
+            } else {
+                Log.e(TAG, "Cannot load user profile - context is null");
+                return;
+            }
+        }
+
+        // First, try to get userId if not set
+        String userId = sharedPreferences.getString("userid", null);
+        if (userId == null || userId.isEmpty()) {
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser != null) {
+                userId = currentUser.getUid();
+                sharedPreferences.edit().putString("userid", userId).apply();
+                Log.d(TAG, "Got userId from FirebaseAuth: " + userId);
+            }
+        }
+
+        // Persist into the fragment field so inner classes can safely reference it
+        this.userId = userId;
+
+        if (databaseReference != null) {
+            Log.d(TAG, "Loading referral code from Firebase...");
+            databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    Log.d(TAG, "Firebase onDataChange called, snapshot exists: " + snapshot.exists());
+                    if (snapshot.exists()) {
+                        String fetchedReferralCode = snapshot.child("referralCode").getValue(String.class);
+                        Log.d(TAG, "Fetched referral code from Firebase: " + fetchedReferralCode);
+
+                        // If referral code is null or placeholder, generate a new one (exactly like
+                        // ProfileEditActivity)
+                        if (fetchedReferralCode == null || fetchedReferralCode.isEmpty()
+                                || fetchedReferralCode.equals("XXXXXX")) {
+                            String userId = sharedPreferences.getString("userid", null);
+                            if (userId != null) {
+                                fetchedReferralCode = generateReferralCode(userId);
+                                // Save to SharedPreferences using ReferralUtils
+                                ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                        sharedPreferences.getString("userEmail", null), fetchedReferralCode);
+                                // Save to Firebase
+                                databaseReference.child("referralCode").setValue(fetchedReferralCode);
+                                Log.d(TAG, "Generated and saved referral code to both SharedPreferences and Firebase: "
+                                        + fetchedReferralCode);
+                            }
+                        }
+
+                        // Update UI with referral code and set currentReferralCode
+                        if (fetchedReferralCode != null && !fetchedReferralCode.isEmpty() && referralCode != null) {
+                            currentReferralCode = fetchedReferralCode;
+                            referralCode.setText(fetchedReferralCode);
+                            // Save to SharedPreferences for next time using ReferralUtils
+                            ReferralUtils.saveProfileToPrefs(getContext(), ReferralFragment.this.userId, sharedPreferences.getString("userName", null),
+                                    sharedPreferences.getString("userEmail", null), fetchedReferralCode);
+                            Log.d(TAG, "Referral code loaded from Firebase and saved to SharedPreferences: "
+                                    + fetchedReferralCode);
+                        } else {
+                            // Fallback: generate code if still null
+                            String userId = sharedPreferences.getString("userid", null);
+                            if (userId != null) {
+                                String generatedCode = generateReferralCode(userId);
+                                currentReferralCode = generatedCode;
+                                if (referralCode != null) {
+                                    referralCode.setText(generatedCode);
+                                }
+                                // Save to SharedPreferences
+                                ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                        sharedPreferences.getString("userEmail", null), generatedCode);
+                                Log.d(TAG, "Generated referral code and saved to SharedPreferences: " + generatedCode);
+                            }
+                        }
+                    } else {
+                        // User doesn't exist in Firebase, generate code anyway
+                        String userId = sharedPreferences.getString("userid", null);
+                        if (userId != null) {
+                            String generatedCode = generateReferralCode(userId);
+                            currentReferralCode = generatedCode;
+                            if (referralCode != null) {
+                                referralCode.setText(generatedCode);
+                            }
+                            // Save to SharedPreferences
+                            ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                    sharedPreferences.getString("userEmail", null), generatedCode);
+                            // Try to save to Firebase
+                            if (databaseReference != null) {
+                                databaseReference.child("referralCode").setValue(generatedCode);
+                            }
+                            Log.d(TAG, "Generated referral code for new user and saved to SharedPreferences: "
+                                    + generatedCode);
+                        }
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+                    Log.e(TAG, "Error loading user profile", error.toException());
+                    // Generate and show referral code even on error (like ProfileEditActivity)
+                    String userId = sharedPreferences.getString("userid", null);
+                    if (userId != null) {
+                        String generatedCode = generateReferralCode(userId);
+                        currentReferralCode = generatedCode;
+                        if (referralCode != null) {
+                            referralCode.setText(generatedCode);
+                        }
+                        // Save to SharedPreferences
+                        ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                sharedPreferences.getString("userEmail", null), generatedCode);
+                        Log.d(TAG, "Generated referral code on error and saved to SharedPreferences: " + generatedCode);
+                    } else {
+                        ToastUtils.showInfo(getContext(), "Failed to load profile");
+                    }
+                }
+            });
+        } else {
+            // databaseReference is null, try to generate code from userId
+            Log.w(TAG, "databaseReference is null, generating code from userId");
+            userId = sharedPreferences.getString("userid", null);
+            if (userId == null || userId.isEmpty()) {
+                FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (currentUser != null) {
+                    userId = currentUser.getUid();
+                    sharedPreferences.edit().putString("userid", userId).apply();
+                }
+            }
+
+            if (userId != null) {
+                String generatedCode = generateReferralCode(userId);
+                currentReferralCode = generatedCode;
+                if (referralCode != null) {
+                    referralCode.setText(generatedCode);
+                }
+                // Save to SharedPreferences
+                ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                        sharedPreferences.getString("userEmail", null), generatedCode);
+                Log.d(TAG, "Generated referral code (no database) and saved to SharedPreferences: " + generatedCode);
+            } else {
+                Log.e(TAG, "Cannot generate referral code - no userId available");
+            }
+        }
+    }
+
+    /**
+     * Direct Firebase loading with proper referral code handling
+     */
+    private void loadReferralDataDirect() {
+        Log.d(TAG, "loadReferralDataDirect: Starting... UserId: " + userId);
+
+        // Check authentication first (required by Firebase rules)
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.w(TAG, "User not authenticated - cannot load referral data from Firebase");
+            // Still show cached referral code if available
+            String cachedCode = ReferralUtils.getCachedReferralCode(getContext());
+            if (cachedCode != null && !cachedCode.isEmpty() && !cachedCode.equals("XXXXXX")) {
+                currentReferralCode = cachedCode;
+                if (referralCode != null) {
+                    referralCode.setText(cachedCode);
+                }
+            }
+            // Initialize UI with zeros
+            if (totalEarned != null) {
+                totalEarned.setText("0.0000 LYX");
+            }
+            if (friendsAdded != null) {
+                friendsAdded.setText("0");
+            }
             return;
         }
 
-        // Remove existing listener to prevent duplicates
-        if (referralListener != null) {
-            userRef.removeEventListener(referralListener);
+        if (userRef == null) {
+            Log.w(TAG, "userRef is null, trying to re-initialize");
+            // Try SharedPreferences first (like ProfileEditActivity)
+            if (userId == null) {
+                userId = sharedPreferences.getString("userid", null);
+            }
+            // Fallback to FirebaseAuth
+            if (userId == null) {
+                userId = currentUser.getUid();
+                sharedPreferences.edit().putString("userid", userId).apply();
+            }
+
+            if (userId != null && !userId.isEmpty()) {
+                userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+                Log.d(TAG, "Re-initialized userRef for user: " + userId);
+            } else {
+                Log.e(TAG, "Cannot load referral data - userId is null");
+                if (getContext() != null) {
+                    ToastUtils.showError(getContext(), "Please log in to view referral data");
+                }
+                return;
+            }
         }
 
-        // OPTIMIZATION: Use single value event listener instead of continuous listener
-        // This prevents unnecessary Firebase reads and fixes the infinite loop bug
+        // Remove previous listener if exists
+        if (referralListener != null) {
+            userRef.removeEventListener(referralListener);
+            referralListener = null;
+        }
+
         referralListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!isAdded()) {
+                if (!isAdded() || getActivity() == null) {
                     Log.w(TAG, "Fragment not attached, skipping data update");
                     return;
                 }
 
-                try {
-                    if (snapshot.exists()) {
-                        // Get referral code
-                        currentReferralCode = snapshot.child("referralCode").getValue(String.class);
-                        if (currentReferralCode != null && referralCode != null) {
-                            referralCode.setText(currentReferralCode);
+                // Run on UI thread to ensure safe UI updates
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded())
+                        return;
+
+                    try {
+                        String fetchedReferralCode = null;
+
+                        if (snapshot.exists()) {
+                            fetchedReferralCode = snapshot.child("referralCode").getValue(String.class);
+                            Log.d(TAG, "Fetched referral code from Firebase: '" + fetchedReferralCode + "'");
+                        } else {
+                            Log.w(TAG, "User snapshot does not exist in Firebase");
                         }
 
-                        // Get total coins from user account (read-only, don't update)
-                        Double userTotalCoins = snapshot.child("totalcoins").getValue(Double.class);
-                        if (userTotalCoins != null) {
-                            totalCoins = userTotalCoins;
+                        // CRITICAL: Use the EXACT SAME LOGIC as ProfileEditActivity
+                        // If referral code is null, empty, or placeholder, generate a new one
+                        if (fetchedReferralCode == null || fetchedReferralCode.isEmpty()
+                                || "XXXXXX".equals(fetchedReferralCode)) {
+                            Log.d(TAG, "Referral code invalid or missing, generating new one for userId: " + userId);
+                            currentReferralCode = generateReferralCode(userId);
+
+                            // Save to Firebase (this matches ProfileEditActivity behavior)
+                            if (userRef != null && currentReferralCode != null) {
+                                // Save to SharedPreferences immediately
+                                ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                        sharedPreferences.getString("userEmail", null), currentReferralCode);
+                                userRef.child("referralCode").setValue(currentReferralCode)
+                                        .addOnSuccessListener(aVoid -> {
+                                            Log.d(TAG, "Successfully saved new referral code to Firebase: "
+                                                    + currentReferralCode);
+                                            // Update UI after successful save
+                                            if (isAdded() && referralCode != null) {
+                                                referralCode.setText(currentReferralCode);
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Failed to save referral code to Firebase", e);
+                                            // Still show the generated code locally
+                                            if (isAdded() && referralCode != null) {
+                                                referralCode.setText(currentReferralCode);
+                                            }
+                                        });
+                            }
+                        } else {
+                            // Use existing valid code
+                            currentReferralCode = fetchedReferralCode;
+                            Log.d(TAG, "Using fetched referral code: " + currentReferralCode);
+
+                            // Save to SharedPreferences
+                            ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                    sharedPreferences.getString("userEmail", null), currentReferralCode);
+
+                            // Update UI immediately
+                             if (referralCode != null) {
+                                 referralCode.setText(currentReferralCode);
+                             }
                         }
 
-                        // Calculate total earned from commissions (20% of referred users' mining)
+
+                        // Load commission earnings
                         totalCommissionEarned = 0.0;
-                        if (snapshot.child("commissions").exists()) {
-                            for (DataSnapshot commission : snapshot.child("commissions").getChildren()) {
-                                Double amount = commission.child("amount").getValue(Double.class);
-                                if (amount != null) {
-                                    totalCommissionEarned += amount;
+                        if (snapshot.exists() && snapshot.child("commissions").exists()) {
+                            DataSnapshot commissionsSnapshot = snapshot.child("commissions");
+                            if (commissionsSnapshot.hasChildren()) {
+                                for (DataSnapshot commission : commissionsSnapshot.getChildren()) {
+                                    Double amount = commission.child("amount").getValue(Double.class);
+                                    if (amount != null) {
+                                        totalCommissionEarned += amount;
+                                        Log.d(TAG, "Found commission: " + amount);
+                                    }
                                 }
                             }
                         }
+                        Log.d(TAG, "Total commissions: " + totalCommissionEarned);
 
-                        // Calculate referral income from mining commissions
-                        double referralMiningIncome = 0.0;
-                        if (snapshot.child("referralEarnings").exists()) {
-                            for (DataSnapshot earning : snapshot.child("referralEarnings").getChildren()) {
-                                Double amount = earning.child("amount").getValue(Double.class);
-                                if (amount != null) {
-                                    referralMiningIncome += amount;
+                        // Load referral mining earnings
+                        referralMiningIncome = 0.0;
+                        if (snapshot.exists() && snapshot.child("referralEarnings").exists()) {
+                            DataSnapshot earningsSnapshot = snapshot.child("referralEarnings");
+                            if (earningsSnapshot.hasChildren()) {
+                                for (DataSnapshot earning : earningsSnapshot.getChildren()) {
+                                    Double amount = earning.child("amount").getValue(Double.class);
+                                    if (amount != null) {
+                                        referralMiningIncome += amount;
+                                        Log.d(TAG, "Found referral earning: " + amount);
+                                    }
                                 }
                             }
                         }
+                        Log.d(TAG, "Total referral earnings: " + referralMiningIncome);
 
-                        // Total referral income = commissions + mining income
+                        // Check boost status
+                        if (snapshot.exists()) {
+                            checkBoostStatus(snapshot);
+                        }
+
+                        // Calculate total earned
                         double totalReferralIncome = totalCommissionEarned + referralMiningIncome;
-
-                        // Check if boost is active and apply multiplier
-                        checkBoostStatus(snapshot);
-
-                        // Apply boost multiplier if active
                         double displayEarned = isBoostActive ? totalReferralIncome * 2.0 : totalReferralIncome;
+
+                        // Update total earned display (always update, even if 0)
                         if (totalEarned != null) {
-                            totalEarned.setText(String.format("%.4f LYX", displayEarned));
+                            totalEarned.setText(String.format(Locale.US, "%.4f LYX", displayEarned));
+                            Log.d(TAG, "Updated totalEarned display: " + displayEarned);
+                        } else {
+                            Log.w(TAG, "totalEarned TextView is null!");
                         }
 
-                        // Count active referrals
+                        // Count referrals
                         int totalReferrals = 0;
-                        if (snapshot.child("referrals").exists()) {
-                            totalReferrals = (int) snapshot.child("referrals").getChildrenCount();
+                        if (snapshot.exists() && snapshot.child("referrals").exists()) {
+                            DataSnapshot referralsSnapshot = snapshot.child("referrals");
+                            if (referralsSnapshot.hasChildren()) {
+                                totalReferrals = (int) referralsSnapshot.getChildrenCount();
+                            }
                         }
+
+                        // Update friends added display (always update, even if 0)
                         if (friendsAdded != null) {
                             friendsAdded.setText(String.valueOf(totalReferrals));
+                            Log.d(TAG, "Updated friendsAdded display: " + totalReferrals);
+                        } else {
+                            Log.w(TAG, "friendsAdded TextView is null!");
                         }
 
-                        // REMOVED: updateUserTotalCoins() - This was causing infinite loop!
-                        // The totalcoins should only be updated from mining/check-in activities,
-                        // not on every data read. This was causing excessive Firebase writes.
+                        Log.d(TAG, "Referral data loaded - Code: " + currentReferralCode +
+                                ", Total Income: " + totalReferralIncome +
+                                ", Commissions: " + totalCommissionEarned +
+                                ", Referral Earnings: " + referralMiningIncome +
+                                ", Referrals: " + totalReferrals +
+                                ", Boost Active: " + isBoostActive);
 
-                        Log.d(TAG, "Referral data loaded successfully - Total referral income: " + totalReferralIncome);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing referral data", e);
+
+                        // Fallback: Generate and display a referral code
+                        if (userId != null) {
+                            currentReferralCode = generateReferralCode(userId);
+                            if (referralCode != null) {
+                                referralCode.setText(currentReferralCode);
+                            }
+                            // Save to SharedPreferences
+                            ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                    sharedPreferences.getString("userEmail", null), currentReferralCode);
+                            Log.d(TAG, "Generated referral code on exception and saved to SharedPreferences: "
+                                    + currentReferralCode);
+                        }
+
+                        if (getContext() != null) {
+                            ToastUtils.showError(getContext(), "Error loading referral data");
+                        }
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error processing referral data", e);
-                    if (getContext() != null) {
-                        ToastUtils.showError(getContext(), "Error loading referral data");
-                    }
-                }
+                });
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Log.e(TAG, "Database error loading referral data", error.toException());
-                if (getContext() != null && isAdded()) {
-                    ToastUtils.showError(getContext(), "Failed to load referral data");
+                if (getActivity() != null && isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        // Fallback: Generate and display a referral code (like ProfileEditActivity
+                        // does)
+                        if (userId != null) {
+                            currentReferralCode = generateReferralCode(userId);
+                            if (referralCode != null) {
+                                referralCode.setText(currentReferralCode);
+                                Log.d(TAG, "Displayed fallback referral code: " + currentReferralCode);
+                            }
+                            // Save to SharedPreferences
+                            ReferralUtils.saveProfileToPrefs(getContext(), userId, sharedPreferences.getString("userName", null),
+                                    sharedPreferences.getString("userEmail", null), currentReferralCode);
+                            // Try to save to Firebase in background (non-blocking)
+                            if (userRef != null) {
+                                userRef.child("referralCode").setValue(currentReferralCode)
+                                        .addOnSuccessListener(
+                                                aVoid -> Log.d(TAG, "Saved fallback referral code to Firebase"))
+                                        .addOnFailureListener(
+                                                e -> Log.w(TAG, "Could not save fallback referral code", e));
+                            }
+                            Log.d(TAG, "Generated referral code on cancellation and saved to SharedPreferences: "
+                                    + currentReferralCode);
+                        } else {
+                            // Only show error if we can't generate a referral code
+                            if (getContext() != null) {
+                                // Prefer cached code over showing N/A
+                                String cached = ReferralUtils.getCachedReferralCode(getContext());
+                                if (cached != null && !cached.isEmpty()) {
+                                    currentReferralCode = cached;
+                                    if (referralCode != null) referralCode.setText(cached);
+                                } else {
+                                    ToastUtils.showError(getContext(), "Failed to load referral data");
+                                }
+                            }
+                        }
+                    });
                 }
             }
         };
 
-        userRef.addListenerForSingleValueEvent(referralListener);
+        // Use addValueEventListener for real-time updates
+        userRef.addValueEventListener(referralListener);
     }
-
-    // REMOVED: updateUserTotalCoins method - it was causing infinite Firebase write loop
 
     private void checkBoostStatus(DataSnapshot snapshot) {
         try {
-            // Check if referral boost is active
             if (snapshot.child("activeBoosts").child("referralBoost").exists()) {
-                Long boostEndTime = snapshot.child("activeBoosts").child("referralBoost").child("endTime").getValue(Long.class);
+                Long boostEndTime = snapshot.child("activeBoosts").child("referralBoost").child("endTime")
+                        .getValue(Long.class);
                 if (boostEndTime != null && boostEndTime > System.currentTimeMillis()) {
                     isBoostActive = true;
                     showBoostActiveIndicator();
@@ -272,20 +711,26 @@ public class ReferralFragment extends Fragment {
     }
 
     private void showBoostActiveIndicator() {
-        // Show boost active indicator (you can add a visual indicator here)
         if (getContext() != null && isAdded()) {
-            ToastUtils.showInfo(getContext(), "🚀 Referral boost is active! (2x rewards)");
+            // Update boost button to show active state
+            // if (boostButton != null) {
+            // boostButton.setCardBackgroundColor(getResources().getColor(R.color.colorPrimary));
+            // }
+            ToastUtils.showInfo(getContext(), "Referral boost is active! (2x rewards)");
         }
     }
 
     private void hideBoostActiveIndicator() {
-        // Hide boost indicator
+        // if (boostButton != null && isAdded()) {
+        // boostButton.setCardBackgroundColor(getResources().getColor(R.color.cardBackground));
+        // }
     }
 
     private void copyReferralCode() {
         if (currentReferralCode != null && getContext() != null) {
             try {
-                ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipboardManager clipboard = (ClipboardManager) getContext()
+                        .getSystemService(Context.CLIPBOARD_SERVICE);
                 if (clipboard != null) {
                     ClipData clip = ClipData.newPlainText("Referral Code", currentReferralCode);
                     clipboard.setPrimaryClip(clip);
@@ -297,12 +742,11 @@ public class ReferralFragment extends Fragment {
                                 .scaleX(1.2f)
                                 .scaleY(1.2f)
                                 .setDuration(100)
-                                .withEndAction(() ->
-                                        copyButton.animate()
-                                                .scaleX(1.0f)
-                                                .scaleY(1.0f)
-                                                .setDuration(100)
-                                                .start())
+                                .withEndAction(() -> copyButton.animate()
+                                        .scaleX(1.0f)
+                                        .scaleY(1.0f)
+                                        .setDuration(100)
+                                        .start())
                                 .start();
                     }
                 }
@@ -312,92 +756,63 @@ public class ReferralFragment extends Fragment {
                     ToastUtils.showError(getContext(), "Failed to copy referral code");
                 }
             }
+        } else {
+            ToastUtils.showError(getContext(), "No referral code available");
         }
     }
 
-    private void shareInvite() {
-        if (currentReferralCode != null && getContext() != null) {
-            try {
-                String inviteLink = "https://play.google.com/store/apps/details?id=network.lynx.app&ref=" + currentReferralCode;
-                String boostMessage = isBoostActive ? "\n🚀 I'm currently on a 2x boost - join now for maximum rewards!" : "";
-
-                // NEW: Enhanced sharing message with earnings info
-                String earningsInfo = totalCommissionEarned > 0 ?
-                        String.format("\n💰 I've already earned %.2f LYX from referrals!", totalCommissionEarned) : "";
-
-                String message = "🚀 Join Lynx Network and start earning!\n\n" +
-                        "Use my referral code: " + currentReferralCode + "\n" +
-                        "Download here: " + inviteLink + "\n\n" +
-                        "We both get mining speed boosts! 💎⚡" +
-                        earningsInfo + boostMessage +
-                        "\n\n🎯 You get 20% of my mining rewards forever!";
-
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Join Lynx Network!");
-                Intent chooser = Intent.createChooser(shareIntent, "Share via");
-                startActivity(chooser);
-            } catch (Exception e) {
-                Log.e(TAG, "Error sharing invite", e);
-                if (getContext() != null) {
-                    ToastUtils.showError(getContext(), "Failed to share invite");
-                }
-            }
-        }
-    }
-
-    // Method to activate boost (can be called from boost button)
-    public void activateReferralBoost() {
-        if (userRef != null) {
-            try {
-                long boostEndTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours
-                userRef.child("activeBoosts").child("referralBoost").child("endTime").setValue(boostEndTime)
-                        .addOnSuccessListener(aVoid -> {
-                            if (getContext() != null && isAdded()) {
-                                Toast.makeText(getContext(), "🚀 Referral boost activated for 24 hours!", Toast.LENGTH_LONG).show();
-                            }
-                            isBoostActive = true;
-                            showBoostActiveIndicator();
-                            // Refresh the earnings display
-                            loadReferralData();
-                        })
-                        .addOnFailureListener(e -> {
-                            Log.e(TAG, "Failed to activate boost", e);
-                            if (getContext() != null && isAdded()) {
-                                Toast.makeText(getContext(), "Failed to activate boost", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-            } catch (Exception e) {
-                Log.e(TAG, "Error activating referral boost", e);
-            }
-        }
-    }
-
-    // Method to check if user can activate boost
-    public boolean canActivateBoost() {
-        return !isBoostActive;
-    }
-
-    // Get current boost status
-    public boolean isBoostActive() {
-        return isBoostActive;
-    }
-
-    // Get total earned amount
-    public double getTotalEarned() {
-        return totalCommissionEarned;
-    }
-
-    // NEW: Get total coins including referral income
-    public double getTotalCoinsWithReferrals() {
-        return totalCoins + totalCommissionEarned;
-    }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Refresh data when fragment becomes visible
+        Log.d(TAG, "onResume: Reloading referral data");
+
+        // Ensure sharedPreferences is initialized
+        if (sharedPreferences == null && getContext() != null) {
+            sharedPreferences = requireContext().getSharedPreferences("userData", Context.MODE_PRIVATE);
+            Log.d(TAG, "Initialized sharedPreferences in onResume");
+        }
+
+        // If context is not available, skip loading
+        if (getContext() == null || sharedPreferences == null) {
+            Log.w(TAG, "Cannot load referral data - context or sharedPreferences is null");
+            return;
+        }
+
+        // Ensure databaseReference is initialized
+        if (databaseReference == null) {
+            String userId = sharedPreferences.getString("userid", null);
+            if (userId == null || userId.isEmpty()) {
+                FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (currentUser != null) {
+                    userId = currentUser.getUid();
+                    sharedPreferences.edit().putString("userid", userId).apply();
+                }
+            }
+
+            if (userId != null && !userId.isEmpty()) {
+                databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId);
+                userRef = databaseReference;
+                Log.d(TAG, "Initialized databaseReference in onResume: " + userId);
+            }
+        }
+
+        // Load referral code first (from cache or Firebase)
+        if (databaseReference != null) {
+            loadUserProfile();
+        } else {
+            // Fallback: try to show cached code
+            // Prefer per-user cached referral code via ReferralUtils
+            String cachedCode = ReferralUtils.getCachedReferralCode(getContext());
+            if (cachedCode != null && !cachedCode.isEmpty()) {
+                currentReferralCode = cachedCode;
+                if (referralCode != null) {
+                    referralCode.setText(cachedCode);
+                }
+            }
+        }
+
+        // Load additional statistics
         if (userRef != null) {
             loadReferralData();
         }
@@ -406,11 +821,43 @@ public class ReferralFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // OPTIMIZATION: Clean up Firebase listener to prevent memory leaks and unnecessary reads
         if (referralListener != null && userRef != null) {
             userRef.removeEventListener(referralListener);
             referralListener = null;
         }
         Log.d(TAG, "ReferralFragment destroyed - listeners cleaned up");
+    }
+
+    /**
+     * Generates a consistent referral code based on user ID
+     * IMPORTANT: This must match EXACTLY with ProfileEditActivity's
+     * generateReferralCode method
+     */
+    private String generateReferralCode(String uid) {
+        if (uid == null || uid.isEmpty()) {
+            return "LYNX" + (System.currentTimeMillis() % 10000);
+        }
+
+        try {
+            // Create a consistent referral code based on user ID
+            String encoded = Base64.encodeToString(uid.getBytes(), Base64.NO_WRAP);
+            String code = encoded.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+
+            // Ensure we have at least 6 characters
+            if (code.length() >= 6) {
+                return code.substring(0, 6);
+            } else {
+                // Pad with numbers if too short (use StringBuilder to avoid repeated concatenation)
+                StringBuilder padded = new StringBuilder(code);
+                while (padded.length() < 6) {
+                    padded.append(Math.abs(uid.hashCode() % 10));
+                }
+                return padded.substring(0, 6);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error generating referral code", e);
+            // Fallback: Use hash-based code
+            return "LYNX" + Math.abs(uid.hashCode() % 10000);
+        }
     }
 }

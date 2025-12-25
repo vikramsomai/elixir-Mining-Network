@@ -272,5 +272,16 @@ public class AchievementManager {
     public void refresh() {
         loadAchievements();
     }
+
+    /**
+     * Reset the singleton instance - call this on logout
+     */
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.listeners.clear();
+            instance.unlockedAchievements.clear();
+            instance = null;
+        }
+    }
 }
 

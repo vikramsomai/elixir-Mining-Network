@@ -51,7 +51,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
     private static final String DATE_FORMAT = "yyyy-MM-dd"; // Consistent date format
@@ -91,11 +90,14 @@ public class HomeFragment extends Fragment {
     private long rewardClaimedTime;
     private final long rewardCooldownMillis = 24L * 60L * 60L * 1000L; // 24 hours, explicit long
 
-
     // NEW: TaskManager integration
     private TaskManager taskManager;
 
-    public HomeFragment() {}
+    // FirebaseManager for optimized operations
+    private FirebaseManager firebaseManager;
+
+    public HomeFragment() {
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -128,7 +130,8 @@ public class HomeFragment extends Fragment {
 
     private void smartPreloadAds() {
         try {
-            if (getContext() != null) adManager.smartPreloadAd(requireContext(), AdManager.AD_UNIT_CHECK_IN);
+            if (getContext() != null)
+                adManager.smartPreloadAd(requireContext(), AdManager.AD_UNIT_CHECK_IN);
         } catch (Exception e) {
             Log.w(TAG, "smartPreloadAds failed", e);
         }
@@ -136,7 +139,8 @@ public class HomeFragment extends Fragment {
 
     private boolean initializeFragment() {
         todayDate = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(Calendar.getInstance().getTime());
-        if (getActivity() == null) return false;
+        if (getActivity() == null)
+            return false;
         sharedPreferences = requireActivity().getSharedPreferences("userData", MODE_PRIVATE);
         auth = FirebaseAuth.getInstance();
         currentUser = auth.getCurrentUser();
@@ -145,6 +149,15 @@ public class HomeFragment extends Fragment {
 
         if (userId != null && !userId.isEmpty()) {
             databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId);
+
+            // Initialize FirebaseManager for optimized operations
+            try {
+                firebaseManager = FirebaseManager.getInstance(requireContext());
+                Log.d(TAG, "FirebaseManager initialized successfully");
+            } catch (Exception e) {
+                Log.e(TAG, "Error initializing FirebaseManager", e);
+            }
+
             try {
                 taskManager = new TaskManager(requireContext(), userId);
                 Log.d(TAG, "TaskManager initialized successfully");
@@ -177,45 +190,84 @@ public class HomeFragment extends Fragment {
         if (userId != null) {
             String address = createUniqueId(userId);
             String addressFull = createFullUniqueId(userId);
-            if (textView != null) textView.setText(address);
-            if (copyAddress != null) copyAddress.setOnClickListener(v -> {
-                copyToClipboard(addressFull);
-                ToastUtils.showInfo(getContext(), "Address copied");
-            });
+            if (textView != null)
+                textView.setText(address);
+            if (copyAddress != null)
+                copyAddress.setOnClickListener(v -> {
+                    copyToClipboard(addressFull);
+                    ToastUtils.showInfo(getContext(), "Address copied");
+                });
         }
         loadCachedUserData();
         loadProfilePicture();
     }
 
     private void loadCachedUserData() {
+        // FIX: Verify cached data belongs to current user
+        String cachedUserId = sharedPreferences.getString("userid", "");
+        String currentUserId = getSafeUserId();
+
+        // If cached data is from a different user, clear old data but DON'T set streak
+        // to 0
+        // Let Firebase fetch the real values
+        if (currentUserId != null && !currentUserId.equals(cachedUserId)) {
+            Log.w(TAG, "Cached data mismatch - cached: " + cachedUserId + ", current: " + currentUserId);
+            // Clear old cached data - streak values will be fetched from Firebase
+            sharedPreferences.edit()
+                    .putString("userid", currentUserId)
+                    .remove("streakCount") // Remove instead of setting to 0
+                    .remove("totalStreak") // Remove instead of setting to 0
+                    .putString("lastClaimDate", "")
+                    .apply();
+        }
+
         String cachedName = sharedPreferences.getString("username", "");
-        String cachedCount = sharedPreferences.getString("streakCount", "0");
-        String cachedTotal = sharedPreferences.getString("totalStreak", "0");
+        String cachedCount = sharedPreferences.getString("streakCount", null); // Use null as default
+        String cachedTotal = sharedPreferences.getString("totalStreak", null); // Use null as default
+
+        Log.d(TAG, "loadCachedUserData: cachedCount=" + cachedCount + ", cachedTotal=" + cachedTotal);
 
         // Show cached username or fetch from Firebase user display name
         if (!cachedName.isEmpty() && !cachedName.equals("none")) {
-            if (username != null) username.setText(cachedName);
-            if (imageView != null) imageView.setHash(cachedName.hashCode());
+            if (username != null)
+                username.setText(cachedName);
+            if (imageView != null)
+                imageView.setHash(cachedName.hashCode());
         } else {
             // Try to get display name from Firebase Auth
-            if (currentUser != null && currentUser.getDisplayName() != null && !currentUser.getDisplayName().isEmpty()) {
+            if (currentUser != null && currentUser.getDisplayName() != null
+                    && !currentUser.getDisplayName().isEmpty()) {
                 String displayName = currentUser.getDisplayName();
-                if (username != null) username.setText(displayName);
-                if (imageView != null) imageView.setHash(displayName.hashCode());
+                if (username != null)
+                    username.setText(displayName);
+                if (imageView != null)
+                    imageView.setHash(displayName.hashCode());
                 // Cache it
                 sharedPreferences.edit().putString("username", displayName).apply();
             } else if (currentUser != null && currentUser.getEmail() != null) {
                 // Use email prefix as fallback
                 String emailName = currentUser.getEmail().split("@")[0];
-                if (username != null) username.setText(emailName);
-                if (imageView != null) imageView.setHash(emailName.hashCode());
+                if (username != null)
+                    username.setText(emailName);
+                if (imageView != null)
+                    imageView.setHash(emailName.hashCode());
             } else {
-                if (username != null) username.setText("User");
+                if (username != null)
+                    username.setText("User");
             }
         }
 
-        if (TotalStreak != null) TotalStreak.setText(cachedCount);
-        if (countStreak != null) countStreak.setText(String.format(Locale.getDefault(), "+%s LYX", cachedTotal));
+        // Show cached values or "Loading..." if no cache
+        if (TotalStreak != null) {
+            TotalStreak.setText(cachedCount != null ? cachedCount : "...");
+        }
+        if (countStreak != null) {
+            if (cachedTotal != null) {
+                countStreak.setText(String.format(Locale.getDefault(), "%s LYX", cachedTotal));
+            } else {
+                countStreak.setText("...");
+            }
+        }
     }
 
     private void loadProfilePicture() {
@@ -230,22 +282,26 @@ public class HomeFragment extends Fragment {
                 Glide.with(this).load(picture).centerCrop().into(profilePic);
             }
         } else {
-            if (profilePic != null) profilePic.setVisibility(View.GONE);
-            if (imageView != null) imageView.setVisibility(View.VISIBLE);
+            if (profilePic != null)
+                profilePic.setVisibility(View.GONE);
+            if (imageView != null)
+                imageView.setVisibility(View.VISIBLE);
         }
     }
 
-
     private void setupGridView() {
-        String[] optionName = {"Rewards", "LeaderBoard", "Blogs", "Faqs"};
-        int[] optionImage = {R.drawable.ic_gift, R.drawable.leaderboard_17595903, R.drawable.news, R.drawable.ic_question};
+        String[] optionName = { "Rewards", "LeaderBoard", "Blogs", "Faqs" };
+        int[] optionImage = { R.drawable.ic_gift, R.drawable.leaderboard_17595903, R.drawable.news,
+                R.drawable.ic_question };
 
         homeAdapater adapter = new homeAdapater(requireActivity(), optionName, optionImage);
-        if (gridView != null) gridView.setAdapter(adapter);
+        if (gridView != null)
+            gridView.setAdapter(adapter);
 
         if (gridView != null) {
             gridView.setOnItemClickListener((parent, view, position, id) -> {
-                if (!isAdded()) return;
+                if (!isAdded())
+                    return;
                 switch (optionName[position]) {
                     case "Rewards":
                         startActivity(new Intent(requireActivity(), RewardsHubActivity.class));
@@ -265,21 +321,29 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        if (spinnerView != null) spinnerView.setOnClickListener(v -> {
-            if (isAdded()) startActivity(new Intent(requireActivity(), spinActivity.class));
-        });
+        if (spinnerView != null)
+            spinnerView.setOnClickListener(v -> {
+                if (isAdded())
+                    startActivity(new Intent(requireActivity(), spinActivity.class));
+            });
 
-        if (boostCard != null) boostCard.setOnClickListener(v -> {
-            if (isAdded()) startActivity(new Intent(requireActivity(), BoostActivity.class));
-        });
+        if (boostCard != null)
+            boostCard.setOnClickListener(v -> {
+                if (isAdded())
+                    startActivity(new Intent(requireActivity(), BoostActivity.class));
+            });
 
-        if (imageView != null) imageView.setOnClickListener(v -> openProfileEdit());
-        if (profilePic != null) profilePic.setOnClickListener(v -> openProfileEdit());
-        if (claimbtn != null) claimbtn.setOnClickListener(v -> handleClaimButtonClick());
+        if (imageView != null)
+            imageView.setOnClickListener(v -> openProfileEdit());
+        if (profilePic != null)
+            profilePic.setOnClickListener(v -> openProfileEdit());
+        if (claimbtn != null)
+            claimbtn.setOnClickListener(v -> handleClaimButtonClick());
     }
 
     private void openProfileEdit() {
-        if (isAdded()) startActivity(new Intent(requireActivity(), ProfileEditActivity.class));
+        if (isAdded())
+            startActivity(new Intent(requireActivity(), ProfileEditActivity.class));
     }
 
     private void handleClaimButtonClick() {
@@ -338,7 +402,8 @@ public class HomeFragment extends Fragment {
      * Thread-safe toast helper that checks fragment state
      */
     private void showSafeToast(String message) {
-        if (!isAdded() || getContext() == null) return;
+        if (!isAdded() || getContext() == null)
+            return;
         try {
             Context context = getContext();
             if (context != null) {
@@ -466,7 +531,14 @@ public class HomeFragment extends Fragment {
                 long hours = remainingTime / (1000 * 60 * 60);
                 long minutes = (remainingTime / (1000 * 60)) % 60;
                 showSafeToast(String.format(Locale.getDefault(),
-                    "Please wait %d hours and %d minutes before claiming again!", hours, minutes));
+                        "Please wait %d hours and %d minutes before claiming again!", hours, minutes));
+                // Update the button label immediately with remaining time
+                if (claimbtn != null) {
+                    claimbtn.setEnabled(false);
+                    claimbtn.setText(String.format(Locale.getDefault(), "%02d:%02d:00", hours, minutes));
+                }
+                // Ensure countdown runs to keep the label updated
+                startCountdown();
                 return false;
             }
             return true;
@@ -528,7 +600,8 @@ public class HomeFragment extends Fragment {
     private void resetClaimButton() {
         isProcessingReward = false;
 
-        if (!isAdded() || getActivity() == null) return;
+        if (!isAdded() || getActivity() == null)
+            return;
 
         // Ensure UI updates happen on main thread
         requireActivity().runOnUiThread(() -> {
@@ -561,16 +634,28 @@ public class HomeFragment extends Fragment {
         userValueListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!isAdded()) return;
-                if (snapshot.exists()) updateUserDataFromSnapshot(snapshot);
-                else handleMissingUserData();
+                if (!isAdded() || getActivity() == null)
+                    return;
+
+                // Run on UI thread to ensure safe UI updates
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded())
+                        return;
+                    if (snapshot.exists()) {
+                        Log.d(TAG, "Firebase data received, updating UI");
+                        updateUserDataFromSnapshot(snapshot);
+                    } else {
+                        Log.w(TAG, "No data exists for this user");
+                        handleMissingUserData();
+                    }
+                });
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                if (isAdded()) {
+                if (isAdded() && getActivity() != null) {
                     Log.e(TAG, "Database error: " + error.getMessage());
-                    handleDatabaseError();
+                    requireActivity().runOnUiThread(() -> handleDatabaseError());
                 }
             }
         };
@@ -579,6 +664,8 @@ public class HomeFragment extends Fragment {
 
     private void updateUserDataFromSnapshot(DataSnapshot snapshot) {
         try {
+            Log.d(TAG, "updateUserDataFromSnapshot: Processing snapshot, exists=" + snapshot.exists());
+
             String fir_name = snapshot.child("username").getValue(String.class);
             if (fir_name != null && !fir_name.isEmpty()) {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -595,10 +682,30 @@ public class HomeFragment extends Fragment {
             }
 
             Integer streakCount = snapshot.child("streakCount").getValue(Integer.class);
-            if (streakCount == null) streakCount = 0;
+            if (streakCount == null)
+                streakCount = 0;
 
-            Double totalDailyStreakValue = snapshot.child("totalStreak").getValue(Double.class);
-            if (totalDailyStreakValue == null) totalDailyStreakValue = 0.0;
+            // FIX: totalStreak can be Integer or Double in Firebase, handle both
+            Double totalDailyStreakValue = 0.0;
+            Object totalStreakRaw = snapshot.child("totalStreak").getValue();
+            if (totalStreakRaw != null) {
+                if (totalStreakRaw instanceof Double) {
+                    totalDailyStreakValue = (Double) totalStreakRaw;
+                } else if (totalStreakRaw instanceof Long) {
+                    totalDailyStreakValue = ((Long) totalStreakRaw).doubleValue();
+                } else if (totalStreakRaw instanceof Integer) {
+                    totalDailyStreakValue = ((Integer) totalStreakRaw).doubleValue();
+                } else {
+                    try {
+                        totalDailyStreakValue = Double.parseDouble(totalStreakRaw.toString());
+                    } catch (NumberFormatException e) {
+                        Log.w(TAG, "Failed to parse totalStreak: " + totalStreakRaw);
+                    }
+                }
+            }
+
+            Log.d(TAG, "updateUserDataFromSnapshot: streakCount=" + streakCount + ", totalStreak="
+                    + totalDailyStreakValue);
 
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString("streakCount", String.valueOf(streakCount));
@@ -606,24 +713,28 @@ public class HomeFragment extends Fragment {
             editor.apply();
 
             if (TotalStreak != null) {
-                String currentStreakText = TotalStreak.getText().toString();
-                if (!currentStreakText.equals(String.valueOf(streakCount))) {
-                    animateTextUpdate(TotalStreak, String.valueOf(streakCount));
-                }
+                Log.d(TAG, "updateUserDataFromSnapshot: Updating TotalStreak UI to " + streakCount);
+                // Always update - don't check if equal since formats may differ
+                animateTextUpdate(TotalStreak, String.valueOf(streakCount));
+            } else {
+                Log.w(TAG, "updateUserDataFromSnapshot: TotalStreak TextView is null!");
             }
 
             if (countStreak != null) {
-                String newRewardText = totalDailyStreakValue + " LYX";
-                if (!countStreak.getText().toString().equals(newRewardText)) {
-                    animateTextUpdate(countStreak, newRewardText);
-                }
+                String newRewardText = String.format(java.util.Locale.US, "%.0f LYX", totalDailyStreakValue);
+                Log.d(TAG, "updateUserDataFromSnapshot: Updating countStreak UI to " + newRewardText);
+                // Always update - don't check if equal since formats may differ
+                animateTextUpdate(countStreak, newRewardText);
+            } else {
+                Log.w(TAG, "updateUserDataFromSnapshot: countStreak TextView is null!");
             }
 
             Integer level = snapshot.child("level").getValue(Integer.class);
             currentLevel = (level != null) ? level : 1;
 
             totalcoins = snapshot.child("totalcoins").getValue(Double.class);
-            if (totalcoins == null) totalcoins = 0.0;
+            if (totalcoins == null)
+                totalcoins = 0.0;
 
             checkIfTokenClaimed();
 
@@ -716,18 +827,37 @@ public class HomeFragment extends Fragment {
             }
         }
 
-        Double totalDailyStreak = snapshot.child("totalStreak").getValue(Double.class);
-        if (totalDailyStreak == null) totalDailyStreak = 0.0;
+        // FIX: totalStreak can be Integer or Double in Firebase, handle both
+        Double totalDailyStreak = 0.0;
+        Object totalStreakRaw = snapshot.child("totalStreak").getValue();
+        if (totalStreakRaw != null) {
+            if (totalStreakRaw instanceof Double) {
+                totalDailyStreak = (Double) totalStreakRaw;
+            } else if (totalStreakRaw instanceof Long) {
+                totalDailyStreak = ((Long) totalStreakRaw).doubleValue();
+            } else if (totalStreakRaw instanceof Integer) {
+                totalDailyStreak = ((Integer) totalStreakRaw).doubleValue();
+            } else {
+                try {
+                    totalDailyStreak = Double.parseDouble(totalStreakRaw.toString());
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "Failed to parse totalStreak: " + totalStreakRaw);
+                }
+            }
+        }
 
         Double totalcoins = snapshot.child("totalcoins").getValue(Double.class);
-        if (totalcoins == null) totalcoins = 0.0;
+        if (totalcoins == null)
+            totalcoins = 0.0;
 
         Integer referrals = snapshot.child("referrals").getValue(Integer.class);
-        if (referrals == null) referrals = 0;
+        if (referrals == null)
+            referrals = 0;
 
         String todayDate = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(new Date());
 
-        Log.d(TAG, "Processing token claim - Last date: " + lastDate + ", Today: " + todayDate + ", Current streak: " + streakCount);
+        Log.d(TAG, "Processing token claim - Last date: " + lastDate + ", Today: " + todayDate + ", Current streak: "
+                + streakCount);
 
         int newStreak = calculateNewStreak(lastDate, streakCount, todayDate);
 
@@ -742,8 +872,10 @@ public class HomeFragment extends Fragment {
         double newTotalCoins = totalcoins + dailyReward;
 
         updateLocalCache(newStreak, totalDailyStreak);
-        if (countStreak != null) animateTextUpdate(countStreak, String.valueOf(totalDailyStreak) + " LYX");
-        if (TotalStreak != null) animateTextUpdate(TotalStreak, String.valueOf(newStreak));
+        if (countStreak != null)
+            animateTextUpdate(countStreak, String.valueOf(totalDailyStreak) + " LYX");
+        if (TotalStreak != null)
+            animateTextUpdate(TotalStreak, String.valueOf(newStreak));
 
         Map<String, Object> updates = new HashMap<>();
         updates.put("lastDate", todayDate);
@@ -764,7 +896,8 @@ public class HomeFragment extends Fragment {
     }
 
     private int calculateNewStreak(String lastDate, int currentStreak, String todayDate) {
-        Log.d(TAG, "calculateNewStreak - lastDate: " + lastDate + ", currentStreak: " + currentStreak + ", todayDate: " + todayDate);
+        Log.d(TAG, "calculateNewStreak - lastDate: " + lastDate + ", currentStreak: " + currentStreak + ", todayDate: "
+                + todayDate);
 
         if (lastDate == null || lastDate.isEmpty()) {
             Log.d(TAG, "No previous streak found, starting new");
@@ -820,19 +953,31 @@ public class HomeFragment extends Fragment {
 
     private void updateFirebaseData(Map<String, Object> updates, int newStreak, double dailyReward) {
         databaseReference.updateChildren(updates).addOnCompleteListener(task -> {
-            if (!isAdded()) return;
+            if (!isAdded())
+                return;
             isProcessingReward = false;
 
             if (task.isSuccessful()) {
                 Log.d(TAG, "Firebase update successful");
 
+                // ✅ Set reward claimed time NOW and save it
+                rewardClaimedTime = System.currentTimeMillis();
+                saveRewardClaimedTime();
+
                 // ✅ Force-refresh user data to reflect latest values
                 fetchUserDataFromFirebase();
 
                 ToastUtils.showInfo(getContext(),
-                        String.format("Reward claimed! Streak: %d days, Earned: %.1f LYX", newStreak, dailyReward));
+                        String.format(Locale.getDefault(), "Reward claimed! Streak: %d days, Earned: %.1f LYX",
+                                newStreak, dailyReward));
 
+                // ✅ Start countdown timer immediately
                 startCountdown();
+
+                // ✅ Disable button immediately
+                if (claimbtn != null) {
+                    claimbtn.setEnabled(false);
+                }
             } else {
                 String errorMsg = task.getException() != null ? task.getException().getMessage() : "Unknown error";
                 Log.e(TAG, "Firebase update failed: " + errorMsg);
@@ -848,10 +993,14 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        // Load reward claimed time from local storage first
+        loadRewardClaimedTime();
+
         databaseReference.child("lastDate").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!isAdded()) return;
+                if (!isAdded())
+                    return;
 
                 String firebaseLastDate = snapshot.getValue(String.class);
                 String today = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault()).format(new Date());
@@ -861,11 +1010,36 @@ public class HomeFragment extends Fragment {
                 if (today.equals(firebaseLastDate)) {
                     editor.putString("lastClaimDate", firebaseLastDate);
                     editor.apply();
+
+                    // If rewardClaimedTime is 0, calculate from today's date
+                    if (rewardClaimedTime == 0) {
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
+                            java.util.Date claimDate = sdf.parse(firebaseLastDate);
+                            if (claimDate != null) {
+                                // Use stored time if available, otherwise fallback to claim date start
+                                rewardClaimedTime = Math.max(rewardClaimedTime, claimDate.getTime());
+                                if (rewardClaimedTime == 0) {
+                                    rewardClaimedTime = System.currentTimeMillis();
+                                }
+                                saveRewardClaimedTime();
+                                Log.d(TAG, "Set rewardClaimedTime from Firebase date: " + rewardClaimedTime);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error parsing claim date", e);
+                            rewardClaimedTime = System.currentTimeMillis() - (12 * 60 * 60 * 1000);
+                            saveRewardClaimedTime();
+                        }
+                    }
+
+                    // Disable button and start timer
+                    if (claimbtn != null)
+                        claimbtn.setEnabled(false);
                     startCountdown();
-                    if (claimbtn != null) claimbtn.setEnabled(false);
                 } else {
                     editor.putString("lastClaimDate", "");
                     editor.apply();
+                    rewardClaimedTime = 0;
                     if (claimbtn != null) {
                         claimbtn.setText("Check in");
                         claimbtn.setEnabled(true);
@@ -883,7 +1057,8 @@ public class HomeFragment extends Fragment {
     }
 
     private void showLevelUpDialog(int newLevel) {
-        if (!isAdded()) return;
+        if (!isAdded())
+            return;
         String benefits = LevelSystem.getLevelBenefits(newLevel);
         new AlertDialog.Builder(requireContext())
                 .setTitle("Level Up! 🎉")
@@ -895,19 +1070,22 @@ public class HomeFragment extends Fragment {
     }
 
     private void startCountdown() {
-        if (!isAdded()) return;
+        if (!isAdded())
+            return;
         long currentTime = System.currentTimeMillis();
         long remainingTimeMillis = rewardClaimedTime + rewardCooldownMillis - currentTime;
 
         if (remainingTimeMillis > 0) {
-            if (claimbtn != null) claimbtn.setEnabled(false);
+            if (claimbtn != null)
+                claimbtn.setEnabled(false);
             if (countdownTimer != null) {
                 countdownTimer.cancel();
             }
             countdownTimer = new CountDownTimer(remainingTimeMillis, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
-                    if (!isAdded()) return;
+                    if (!isAdded())
+                        return;
                     long hours = millisUntilFinished / (1000 * 60 * 60);
                     long minutes = (millisUntilFinished / (1000 * 60)) % 60;
                     long seconds = (millisUntilFinished / 1000) % 60;
@@ -917,7 +1095,8 @@ public class HomeFragment extends Fragment {
 
                 @Override
                 public void onFinish() {
-                    if (!isAdded()) return;
+                    if (!isAdded())
+                        return;
                     if (claimbtn != null) {
                         claimbtn.setText("Check in");
                         claimbtn.setEnabled(true);
@@ -935,7 +1114,8 @@ public class HomeFragment extends Fragment {
     }
 
     private void animateTextUpdate(final TextView textView, final String newText) {
-        if (textView == null || !isAdded()) return;
+        if (textView == null || !isAdded())
+            return;
         AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
         fadeOut.setDuration(150);
         fadeOut.setFillAfter(true);
@@ -946,7 +1126,8 @@ public class HomeFragment extends Fragment {
 
         fadeOut.setAnimationListener(new Animation.AnimationListener() {
             @Override
-            public void onAnimationStart(Animation animation) {}
+            public void onAnimationStart(Animation animation) {
+            }
 
             @Override
             public void onAnimationEnd(Animation animation) {
@@ -957,30 +1138,46 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onAnimationRepeat(Animation animation) {}
+            public void onAnimationRepeat(Animation animation) {
+            }
         });
 
         textView.startAnimation(fadeOut);
     }
 
     private void saveRewardClaimedTime() {
-        if (getActivity() == null || !isAdded()) return;
+        if (getActivity() == null || !isAdded())
+            return;
 
-        String userId = sharedPreferences.getString("userid", "unknown_user");
-        SharedPreferences prefs = requireActivity().getSharedPreferences("user_checkin_" + userId, Context.MODE_PRIVATE);
+        // FIX: Use current Firebase UID instead of cached SharedPreferences value
+        String userId = getSafeUserId();
+        if (userId == null || userId.isEmpty()) {
+            userId = sharedPreferences.getString("userid", "unknown_user");
+        }
+        SharedPreferences prefs = requireActivity().getSharedPreferences("user_checkin_" + userId,
+                Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putLong("rewardClaimedTime", rewardClaimedTime);
         editor.apply();
     }
-    private void loadRewardClaimedTime() {
-        if (getActivity() == null || !isAdded()) return;
 
-        String userId = sharedPreferences.getString("userid", "unknown_user");
-        SharedPreferences prefs = requireActivity().getSharedPreferences("user_checkin_" + userId, Context.MODE_PRIVATE);
+    private void loadRewardClaimedTime() {
+        if (getActivity() == null || !isAdded())
+            return;
+
+        // FIX: Use current Firebase UID instead of cached SharedPreferences value
+        String userId = getSafeUserId();
+        if (userId == null || userId.isEmpty()) {
+            userId = sharedPreferences.getString("userid", "unknown_user");
+        }
+        SharedPreferences prefs = requireActivity().getSharedPreferences("user_checkin_" + userId,
+                Context.MODE_PRIVATE);
         rewardClaimedTime = prefs.getLong("rewardClaimedTime", 0L);
     }
+
     private void copyToClipboard(String text) {
-        if (getActivity() == null || !isAdded()) return;
+        if (getActivity() == null || !isAdded())
+            return;
         ClipboardManager clipboard = (ClipboardManager) requireActivity().getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("Crypto Address", text);
         if (clipboard != null) {
@@ -995,7 +1192,8 @@ public class HomeFragment extends Fragment {
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             String fullHash = hexString.toString();
@@ -1013,7 +1211,8 @@ public class HomeFragment extends Fragment {
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return "0x" + hexString.toString();
@@ -1030,7 +1229,38 @@ public class HomeFragment extends Fragment {
         adManager.cleanupExpiredAds();
         smartPreloadAds();
         fetchUserDataFromFirebase();
+
+        // Restore countdown timer immediately if there's remaining time
+        restoreCountdownTimer();
+
+        // Also check Firebase for latest claim status
         checkIfTokenClaimed();
+    }
+
+    private void restoreCountdownTimer() {
+        if (!isAdded() || claimbtn == null)
+            return;
+
+        // Load the saved reward claimed time
+        loadRewardClaimedTime();
+
+        // Check if there's remaining cooldown time
+        long currentTime = System.currentTimeMillis();
+        long remainingTimeMillis = rewardClaimedTime + rewardCooldownMillis - currentTime;
+
+        if (remainingTimeMillis > 0) {
+            Log.d(TAG, "Restoring countdown timer with " + remainingTimeMillis + "ms remaining");
+            // Disable button and start countdown immediately
+            claimbtn.setEnabled(false);
+            startCountdown();
+        } else {
+            // No cooldown, enable button
+            if (claimbtn != null) {
+                claimbtn.setText("Check in");
+                claimbtn.setEnabled(true);
+            }
+            rewardClaimedTime = 0L;
+        }
     }
 
     @Override
@@ -1060,8 +1290,11 @@ public class HomeFragment extends Fragment {
         }
         // Remove tracked realtime listeners to avoid traffic/leaks
         try {
-            if (databaseReference != null && userValueListener != null) databaseReference.removeEventListener(userValueListener);
-        } catch (Exception e) { Log.w(TAG, "Failed to remove user listener", e); }
+            if (databaseReference != null && userValueListener != null)
+                databaseReference.removeEventListener(userValueListener);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to remove user listener", e);
+        }
         view = null;
     }
 
@@ -1091,7 +1324,8 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    // Safely get user id: prefer FirebaseAuth current user, fallback to stored prefs
+    // Safely get user id: prefer FirebaseAuth current user, fallback to stored
+    // prefs
     private @Nullable String getSafeUserId() {
         try {
             if (auth != null && auth.getCurrentUser() != null) {
@@ -1099,7 +1333,8 @@ public class HomeFragment extends Fragment {
             }
             if (sharedPreferences != null) {
                 String prefUid = sharedPreferences.getString("userid", null);
-                if (prefUid != null && !prefUid.isEmpty()) return prefUid;
+                if (prefUid != null && !prefUid.isEmpty())
+                    return prefUid;
             }
         } catch (Exception e) {
             Log.w(TAG, "getSafeUserId failed", e);
@@ -1107,4 +1342,3 @@ public class HomeFragment extends Fragment {
         return null;
     }
 }
-

@@ -54,7 +54,11 @@ public class spinActivity extends AppCompatActivity {
     }
 
     private void initializePreferences() {
-        prefs = getSharedPreferences("spinPrefs", MODE_PRIVATE);
+        // FIX: Use per-user preferences to avoid data leaking between accounts
+        String userId = FirebaseAuth.getInstance().getCurrentUser() != null
+            ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+            : "guest";
+        prefs = getSharedPreferences("spinPrefs_" + userId, MODE_PRIVATE);
     }
 
     // NEW: Initialize TaskManager

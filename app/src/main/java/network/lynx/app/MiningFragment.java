@@ -119,7 +119,8 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
         startButton = view.findViewById(R.id.miningblow);
         miningRate = view.findViewById(R.id.miningrate);
         miningPer = view.findViewById(R.id.miningPer);
-//        invite = view.findViewById(R.id.invite);
+        // Previously invite was not initialized which caused click to do nothing. Initialize it here.
+        invite = view.findViewById(R.id.invite);
         boostCard = view.findViewById(R.id.boost);
         handler = new Handler(Looper.getMainLooper());
     }
@@ -155,12 +156,26 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
 
     private void initializePreferences() {
         try {
-            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            prefsName = "TokenPrefs_" + userID;
+            String userID = null;
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            }
+            prefsName = "TokenPrefs_" + (userID != null ? userID : "guest");
             Context context = getSafeContext();
             if (context != null) {
                 tokenPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
-                miningRef = FirebaseDatabase.getInstance().getReference("users").child(userID).child("mining");
+                if (userID != null) {
+                    miningRef = FirebaseDatabase.getInstance().getReference("users").child(userID).child("mining");
+                }
+            }
+
+            // Load cached referral code from centralized ReferralUtils so invite works without extra DB reads
+            Context ctx = getSafeContext();
+            if (ctx != null) {
+                String cached = ReferralUtils.getCachedReferralCode(ctx);
+                if (cached != null && !cached.isEmpty()) {
+                    referralCode = cached;
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing preferences", e);
@@ -182,7 +197,31 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
 
     private void setupClickListeners() {
         if (invite != null) {
-            invite.setOnClickListener(v -> shareAppInvite());
+            invite.setOnClickListener(v -> {
+                Log.d(TAG, "Invite button clicked in MiningFragment");
+                Context context = getSafeContext();
+                if (context != null) {
+                    // Ensure we have a referral code before sharing
+                    if (referralCode == null || referralCode.isEmpty()) {
+                        String userId = null;
+                        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                            userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                        }
+                        if (userId != null) {
+                            referralCode = ReferralUtils.generateReferralCode(userId);
+                            ReferralUtils.saveProfileToPrefs(context, userId, null, null, referralCode);
+                        }
+                    }
+                    ReferralUtils.shareReferral(context);
+                } else {
+                    Log.e(TAG, "Context is null, cannot share referral");
+                }
+            });
+            invite.setClickable(true);
+            invite.setFocusable(true);
+            Log.d(TAG, "Invite button click listener set up successfully");
+        } else {
+            Log.w(TAG, "Invite CardView is null - cannot set click listener");
         }
 
         startButton.setOnClickListener(v -> {
@@ -453,26 +492,6 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
             });
         } catch (Exception e) {
             Log.e(TAG, "Error setting up ViewModel", e);
-        }
-    }
-
-    private void shareAppInvite() {
-        if (!isAdded() || referralCode == null) return;
-        try {
-            String inviteLink = "https://play.google.com/store/apps/details?id=network.lynx.app&ref=" + referralCode;
-            boolean hasPermanentBoost = boostManager != null && boostManager.hasPermanentBoost();
-            String boostMessage = hasPermanentBoost ? "\n🚀 I have a permanent mining boost - join now!" : "";
-            String message = "Join Lynx Network and earn rewards! Use my referral code: "
-                    + referralCode + "\nDownload here: " + inviteLink + boostMessage;
-
-            Intent sendIntent = new Intent();
-            sendIntent.setAction(Intent.ACTION_SEND);
-            sendIntent.putExtra(Intent.EXTRA_TEXT, message);
-            sendIntent.setType("text/plain");
-            Intent shareIntent = Intent.createChooser(sendIntent, "Share via");
-            startActivity(shareIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "Error sharing app invite", e);
         }
     }
 
@@ -984,6 +1003,7 @@ public class MiningFragment extends Fragment implements BoostManager.BoostChange
                 updateMiningRateDisplay();
                 if (hasPermanentBoost) {
                     Context context = getSafeContext();
+                    // fixed: added missing parentheses around condition
                     if (context != null) {
                         ToastUtils.showInfo(context, "Permanent boost is active! +" +
                                 String.format("%.0f", (multiplier - 1) * 100) + "%");

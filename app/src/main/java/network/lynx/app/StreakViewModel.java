@@ -13,30 +13,46 @@ import androidx.annotation.NonNull;
 
 public class StreakViewModel extends ViewModel {
     private final MutableLiveData<Integer> streak = new MutableLiveData<>();
+    private String currentUserId = null;
 
     public LiveData<Integer> getStreak() {
         return streak;
     }
 
     public void fetchStreakFromFirebase(String userId) {
-        // Avoid re-fetching if already available
-        if (streak.getValue() != null) return;
+        // FIX: Always fetch if userId changes (different user logged in)
+        if (userId == null || userId.isEmpty()) return;
+
+        // Force refetch if different user
+        if (!userId.equals(currentUserId)) {
+            currentUserId = userId;
+            streak.setValue(null); // Clear old value
+        } else if (streak.getValue() != null) {
+            // Same user, already have value
+            return;
+        }
 
         FirebaseDatabase.getInstance().getReference("streaks").child(userId)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         Integer streakValue = snapshot.getValue(Integer.class);
-                        if (streakValue != null) {
-                            streak.setValue(streakValue);
-                        }
+                        streak.setValue(streakValue != null ? streakValue : 0);
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        // Optionally handle error
+                        streak.setValue(0);
                     }
                 });
+    }
+
+    /**
+     * Clear cached data - call on logout
+     */
+    public void clearCache() {
+        currentUserId = null;
+        streak.setValue(null);
     }
 }
 

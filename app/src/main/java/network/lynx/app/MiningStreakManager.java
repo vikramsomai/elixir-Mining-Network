@@ -380,5 +380,15 @@ public class MiningStreakManager {
 
         return info.toString();
     }
+
+    /**
+     * Reset the singleton instance - call this on logout
+     */
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.listeners.clear();
+            instance = null;
+        }
+    }
 }
 

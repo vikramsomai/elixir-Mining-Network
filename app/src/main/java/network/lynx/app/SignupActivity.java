@@ -105,8 +105,16 @@ public class SignupActivity extends AppCompatActivity {
                         if (user != null) {
                             saveUserToDatabase(user, user.getDisplayName());
 
+                            // FIX: Clear old user data before saving new user
+                            SharedPreferences prefs = getSharedPreferences("userData", Context.MODE_PRIVATE);
+                            String oldUserId = prefs.getString("userid", null);
+                            if (oldUserId != null && !oldUserId.equals(user.getUid())) {
+                                clearOldUserPreferences(oldUserId);
+                            }
+
                             // Save user ID and username in SharedPreferences for ReferralActivity
-                            SharedPreferences.Editor editor = getSharedPreferences("userData", Context.MODE_PRIVATE).edit();
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.clear(); // Clear all old data
                             editor.putString("userid", user.getUid());
                             editor.putString("username", user.getDisplayName());
                             editor.putString("profilePicUrl", user.getPhotoUrl()!=null?user.getPhotoUrl().toString():"");
@@ -155,8 +163,16 @@ public class SignupActivity extends AppCompatActivity {
                                     // Save user to database
                                     saveUserToDatabase(user, edit_username);
 
+                                    // FIX: Clear old user data before saving new user
+                                    SharedPreferences prefs = getSharedPreferences("userData", Context.MODE_PRIVATE);
+                                    String oldUserId = prefs.getString("userid", null);
+                                    if (oldUserId != null && !oldUserId.equals(user.getUid())) {
+                                        clearOldUserPreferences(oldUserId);
+                                    }
+
                                     // Save to SharedPreferences
-                                    SharedPreferences.Editor editor = getSharedPreferences("userData", Context.MODE_PRIVATE).edit();
+                                    SharedPreferences.Editor editor = prefs.edit();
+                                    editor.clear(); // Clear all old data
                                     editor.putString("userid", user.getUid());
                                     editor.putString("username", edit_username);
                                     editor.putString("email", edit_email);
@@ -179,7 +195,24 @@ public class SignupActivity extends AppCompatActivity {
                         }
                     } else {
                         Log.w(TAG, "Signup failed", task.getException());
-                        ToastUtils.showInfo(this, "Signup failed. Try again.");
+                        String errorMessage = "Signup failed. ";
+                        if (task.getException() != null) {
+                            String exceptionMessage = task.getException().getMessage();
+                            if (exceptionMessage != null) {
+                                if (exceptionMessage.contains("email address is already in use")) {
+                                    errorMessage = "This email is already registered. Please login instead.";
+                                } else if (exceptionMessage.contains("password is invalid") || exceptionMessage.contains("at least 6 characters")) {
+                                    errorMessage = "Password must be at least 6 characters.";
+                                } else if (exceptionMessage.contains("email address is badly formatted")) {
+                                    errorMessage = "Please enter a valid email address.";
+                                } else if (exceptionMessage.contains("network error")) {
+                                    errorMessage = "Network error. Please check your internet connection.";
+                                } else {
+                                    errorMessage += exceptionMessage;
+                                }
+                            }
+                        }
+                        ToastUtils.showError(this, errorMessage);
                     }
                 });
     }
@@ -238,18 +271,92 @@ public class SignupActivity extends AppCompatActivity {
 
     private void saveUserToDatabase(FirebaseUser user, String username) {
         databaseReference = FirebaseDatabase.getInstance().getReference("users").child(user.getUid());
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("username", username);
-        updates.put("email", user.getEmail());
-        updates.put("referralCode", generateReferralCode(user.getUid()));
-        updates.put("mining", new HashMap<>());
 
-        databaseReference.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "User saved successfully"))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to save user", e));
+        // Generate referral code
+        String referralCode = generateReferralCode(user.getUid());
+
+        // Create a complete user object with all required fields
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("username", username);
+        userData.put("email", user.getEmail());
+        userData.put("referralCode", referralCode);
+        userData.put("totalcoins", 0.0);
+        userData.put("dailyStreak", 0);
+        userData.put("level", 1);
+        userData.put("createdAt", ServerValue.TIMESTAMP);
+        userData.put("lastLogin", ServerValue.TIMESTAMP);
+
+        // Initialize mining object
+        Map<String, Object> mining = new HashMap<>();
+        mining.put("isMiningActive", false);
+        mining.put("startTime", 0);
+        userData.put("mining", mining);
+
+        // Save to ReferralUtils for immediate local caching (avoids multiple Firebase reads)
+        ReferralUtils.saveProfileToPrefs(this, user.getUid(), username, user.getEmail(), referralCode);
+        Log.d(TAG, "Saved user profile to local prefs: userId=" + user.getUid() + ", email=" + user.getEmail() + ", referralCode=" + referralCode);
+
+        // Use setValue for initial creation, then updateChildren won't have issues
+        databaseReference.setValue(userData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User saved successfully to Firebase");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to save user to Firebase: " + e.getMessage(), e);
+                    // Show error to user
+                    ToastUtils.showError(SignupActivity.this, "Failed to create account. Please try again.");
+                });
     }
 
     public static String generateReferralCode(String userId) {
-        return Base64.encodeToString(userId.getBytes(), Base64.NO_WRAP).substring(0, 6);
+        try {
+            // Use Base64 encoding and clean it up
+            String encoded = Base64.encodeToString(userId.getBytes(), Base64.NO_WRAP);
+            // Remove non-alphanumeric characters and convert to uppercase
+            String cleaned = encoded.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+            // Take first 6 characters
+            if (cleaned.length() >= 6) {
+                return cleaned.substring(0, 6);
+            } else {
+                // Pad with hash code if too short
+                return cleaned + String.valueOf(Math.abs(userId.hashCode()) % 10000);
+            }
+        } catch (Exception e) {
+            // Fallback: use hash code
+            return "LYX" + String.valueOf(Math.abs(userId.hashCode()) % 100000);
+        }
+    }
+
+    /**
+     * FIX: Clear old user's preferences to prevent data leaking between accounts
+     */
+    private void clearOldUserPreferences(String oldUserId) {
+        Log.d(TAG, "Clearing old user preferences for: " + oldUserId);
+        try {
+            getSharedPreferences("user_checkin_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("spinPrefs_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("spinPrefs", MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("MiningSync_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("TokenPrefs_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("BoostManager_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("Achievements_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("HourlyBonus_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("LuckyNumber_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("ScratchCard_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("MiningStreak_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+            getSharedPreferences("TaskManager_" + oldUserId, MODE_PRIVATE).edit().clear().apply();
+
+            // Clear old user's ReferralUtils prefs
+            ReferralUtils.clearUserPrefs(this, oldUserId);
+
+            // Reset singleton managers
+            BoostManager.resetInstance();
+            MiningSyncManager.resetInstance();
+            MiningStreakManager.resetInstance();
+            AchievementManager.resetInstance();
+            HourlyBonusManager.resetInstance();
+        } catch (Exception e) {
+            Log.e(TAG, "Error clearing old user preferences", e);
+        }
     }
 }

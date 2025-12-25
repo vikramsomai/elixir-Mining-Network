@@ -59,7 +59,7 @@ public class ReferralsTabFragment extends Fragment {
         setupRecyclerView();
         loadReferralData();
 
-        inviteFriendsButton.setOnClickListener(v -> shareAppInvite());
+        inviteFriendsButton.setOnClickListener(v -> ReferralUtils.shareReferral(getContext()));
 
         return view;
     }
@@ -74,18 +74,38 @@ public class ReferralsTabFragment extends Fragment {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-        // Get referral code - use single value event
-        userRef.child("referralCode").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                referralCode = snapshot.getValue(String.class);
-            }
+        // OPTIMIZATION: Check cached referral code first to avoid Firebase read
+        String cachedCode = ReferralUtils.getCachedReferralCode(getContext(), userId);
+        if (cachedCode != null && !cachedCode.isEmpty() && !cachedCode.equals("XXXXXX")) {
+            referralCode = cachedCode;
+        } else {
+            // Get referral code from Firebase if not cached - use single value event
+            userRef.child("referralCode").addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    referralCode = snapshot.getValue(String.class);
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                // Handle error
-            }
-        });
+                    // If referral code is null or placeholder, generate a new one
+                    if (referralCode == null || referralCode.isEmpty() || referralCode.equals("XXXXXX")) {
+                        referralCode = generateReferralCode(userId);
+                        // Save to Firebase
+                        userRef.child("referralCode").setValue(referralCode);
+                    }
+
+                    // Save to centralized SharedPreferences cache for app-wide reuse
+                    ReferralUtils.saveProfileToPrefs(getContext(), userId, null, null, referralCode);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+                    // Handle error - try to generate code if possible
+                    if (referralCode == null || referralCode.isEmpty()) {
+                        referralCode = generateReferralCode(userId);
+                        ReferralUtils.saveProfileToPrefs(getContext(), userId, null, null, referralCode);
+                    }
+                }
+            });
+        }
 
         // Remove existing listener to prevent duplicates
         if (referralsListener != null) {
@@ -210,21 +230,8 @@ public class ReferralsTabFragment extends Fragment {
     }
 
     private void shareAppInvite() {
-        if (referralCode == null || referralCode.isEmpty()) {
-            return;
-        }
-
-        String inviteLink = "https://play.google.com/store/apps/details?id=network.lynx.app&ref=" + referralCode;
-        String message = "Join Lynx Network and earn rewards! Use my referral code: "
-                + referralCode + "\nDownload here: " + inviteLink;
-
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
-        sendIntent.setType("text/plain");
-
-        Intent shareIntent = Intent.createChooser(sendIntent, "Share via");
-        startActivity(shareIntent);
+        // Keep for backwards compatibility but delegate to ReferralUtils
+        ReferralUtils.shareReferral(getContext());
     }
 
     @Override
@@ -234,6 +241,26 @@ public class ReferralsTabFragment extends Fragment {
         if (referralsListener != null && userRef != null) {
             userRef.child("referrals").removeEventListener(referralsListener);
             referralsListener = null;
+        }
+    }
+
+    /**
+     * Generate a unique referral code from user ID
+     */
+    private String generateReferralCode(String uid) {
+        if (uid == null || uid.isEmpty()) {
+            return "LYNX" + System.currentTimeMillis() % 10000;
+        }
+        try {
+            String encoded = android.util.Base64.encodeToString(uid.getBytes(), android.util.Base64.NO_WRAP);
+            String code = encoded.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+            if (code.length() >= 6) {
+                return code.substring(0, 6);
+            } else {
+                return code + uid.hashCode() % 1000;
+            }
+        } catch (Exception e) {
+            return "LYX" + Math.abs(uid.hashCode() % 100000);
         }
     }
 }

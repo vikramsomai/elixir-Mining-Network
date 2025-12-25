@@ -1,5 +1,6 @@
 package network.lynx.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -45,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
     FrameLayout frameLayout;
     BottomNavigationView bottomNavigationView;
     private AdManager adManager;
+
+    // FIX: Track current user to detect user changes
+    private String currentUserId = null;
+    private FirebaseAuth.AuthStateListener authStateListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,8 +110,12 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
             checkForNotifications();
         }
+
+        // FIX: Setup auth state listener to handle user changes
+        setupAuthStateListener();
 
         setupViews();
         setupNavigation();
@@ -122,6 +131,50 @@ public class MainActivity extends AppCompatActivity {
 
         // Smart preload only the most likely used ad
         adManager.smartPreloadAd(this, AdManager.AD_UNIT_CHECK_IN);
+    }
+
+    /**
+     * FIX: Setup auth state listener to detect user changes and refresh data
+     */
+    private void setupAuthStateListener() {
+        authStateListener = firebaseAuth -> {
+            if (firebaseAuth.getCurrentUser() != null) {
+                String newUserId = firebaseAuth.getCurrentUser().getUid();
+
+                // If user changed, reload the current fragment to refresh data
+                if (currentUserId != null && !currentUserId.equals(newUserId)) {
+                    Log.d(TAG, "User changed from " + currentUserId + " to " + newUserId);
+                    currentUserId = newUserId;
+
+                    // Reload the home fragment to refresh with new user data
+                    loadFragment(new HomeFragment());
+                    bottomNavigationView.setSelectedItemId(R.id.navHome);
+                } else if (currentUserId == null) {
+                    currentUserId = newUserId;
+                }
+            } else {
+                // User signed out - go to login
+                currentUserId = null;
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            }
+        };
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (authStateListener != null) {
+            FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (authStateListener != null) {
+            FirebaseAuth.getInstance().removeAuthStateListener(authStateListener);
+        }
     }
 
     private void setupViews() {

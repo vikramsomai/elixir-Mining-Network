@@ -215,5 +215,15 @@ public class HourlyBonusManager {
     public void removeListener(BonusListener listener) {
         listeners.remove(listener);
     }
+
+    /**
+     * Reset the singleton instance - call this on logout
+     */
+    public static synchronized void resetInstance() {
+        if (instance != null) {
+            instance.listeners.clear();
+            instance = null;
+        }
+    }
 }
 
