@@ -305,23 +305,29 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
 
             // Core engagement tasks
             allTasks.add(new TaskItem("Invite 3 Friends", "x1.5", "Lifetime", TaskItem.TaskType.INVITE_FRIENDS));
-            allTasks.add(new TaskItem( "Follow X", "x1.2", "24 hours", TaskItem.TaskType.FOLLOW_TWITTER));
-            allTasks.add(new TaskItem( "Daily Check-in", "x1.1", "24 hours", TaskItem.TaskType.DAILY_CHECKIN));
-            allTasks.add(new TaskItem( "Watch Ad for Mining", "x2.0", "Per session", TaskItem.TaskType.WATCH_AD));
-//            allTasks.add(new TaskItem("⚡", "Temporary Boost", "x1.5", "1 hour", TaskItem.TaskType.TEMPORARY_BOOST));
+            allTasks.add(new TaskItem("Follow X", "x1.2", "24 hours", TaskItem.TaskType.FOLLOW_TWITTER));
+            allTasks.add(new TaskItem("Daily Check-in", "x1.1", "24 hours", TaskItem.TaskType.DAILY_CHECKIN));
+            allTasks.add(new TaskItem("Watch Ad for Mining", "x2.0", "Per session", TaskItem.TaskType.WATCH_AD));
 
             // NEW: Additional engagement tasks
-            allTasks.add(new TaskItem( "Join Telegram", "x1.15", "24 hours", TaskItem.TaskType.JOIN_TELEGRAM));
-//            allTasks.add(new TaskItem( "Subscribe YouTube", "x1.15", "24 hours", TaskItem.TaskType.SUBSCRIBE_YOUTUBE));
-//            allTasks.add(new TaskItem("Like Facebook Page", "x1.1", "24 hours", TaskItem.TaskType.LIKE_FACEBOOK));
-//            allTasks.add(new TaskItem( "Follow Instagram", "x1.1", "24 hours", TaskItem.TaskType.FOLLOW_INSTAGRAM));
-            allTasks.add(new TaskItem( "Join Discord", "x1.15", "24 hours", TaskItem.TaskType.JOIN_DISCORD));
-//            allTasks.add(new TaskItem( "Play Mini Game", "x1.05", "Daily", TaskItem.TaskType.PLAY_MINI_GAME));
-            allTasks.add(new TaskItem( "Rate App", "x1.2", "Lifetime", TaskItem.TaskType.RATE_APP));
-            allTasks.add(new TaskItem( "Share App", "x1.1", "Daily", TaskItem.TaskType.SHARE_APP));
+            allTasks.add(new TaskItem("Join Telegram", "x1.15", "24 hours", TaskItem.TaskType.JOIN_TELEGRAM));
+            allTasks.add(new TaskItem("Join Discord", "x1.15", "24 hours", TaskItem.TaskType.JOIN_DISCORD));
+            allTasks.add(new TaskItem("Rate App", "x1.2", "Lifetime", TaskItem.TaskType.RATE_APP));
+            allTasks.add(new TaskItem("Share App", "x1.1", "Daily", TaskItem.TaskType.SHARE_APP));
 
             Log.d(TAG, "Created " + allTasks.size() + " task items");
 
+            // FIXED: Show tasks immediately while checking completion status
+            comingSoonTasksList.clear();
+            completedTasksList.clear();
+            comingSoonTasksList.addAll(allTasks);
+
+            if (comingSoonAdapter != null) {
+                comingSoonAdapter.notifyDataSetChanged();
+                Log.d(TAG, "Immediately updated adapter with " + allTasks.size() + " tasks");
+            }
+
+            // Then check completion status from Firebase
             checkTaskCompletion(allTasks);
 
         } catch (Exception e) {
@@ -433,27 +439,32 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
                 String indicators = boostManager.getBoostIndicators();
 
                 if (farmingSpeed != null) {
-                    farmingSpeed.setText(String.format("%.4f / hour %s", currentRatePerHour, indicators));
+                    if (indicators != null && !indicators.isEmpty()) {
+                        farmingSpeed.setText(String.format(java.util.Locale.US, "%.4f LYX/hour %s", currentRatePerHour, indicators));
+                    } else {
+                        farmingSpeed.setText(String.format(java.util.Locale.US, "%.4f LYX/hour", currentRatePerHour));
+                    }
                 }
                 updateBoostStatus();
 
-                Log.d(TAG, "Boost display updated successfully");
+                Log.d(TAG, "Boost display updated - Rate: " + currentRatePerHour + " LYX/hour");
             } else {
                 Log.w(TAG, "BoostManager is null, using fallback display");
                 if (farmingSpeed != null) {
-                    farmingSpeed.setText("4.5000 / hour");
+                    farmingSpeed.setText("4.5000 LYX/hour");
                 }
                 if (boostStatus != null) {
-                    boostStatus.setText("Loading...");
+                    boostStatus.setText("Base mining rate active");
+                    boostStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.textSecondary));
                 }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating boost display", e);
             if (farmingSpeed != null) {
-                farmingSpeed.setText("Error");
+                farmingSpeed.setText("4.5000 LYX/hour");
             }
             if (boostStatus != null) {
-                boostStatus.setText("Display error");
+                boostStatus.setText("Loading boost info...");
             }
         }
     }
@@ -511,16 +522,16 @@ public class BoostActivity extends AppCompatActivity implements BoostManager.Boo
 
             if (activeBoosts.isEmpty()) {
                 boostStatus.setText("No boosts active");
-                boostStatus.setTextColor(getResources().getColor(android.R.color.secondary_text_light));
+                boostStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.textSecondary));
             } else {
                 String statusText;
                 if (activeBoosts.size() == 1) {
                     statusText = activeBoosts.get(0);
                 } else {
-                    statusText = String.format("x%.1f Total Boost Active", totalMultiplier);
+                    statusText = String.format(java.util.Locale.US, "x%.1f Total Boost Active", totalMultiplier);
                 }
                 boostStatus.setText(statusText);
-                boostStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                boostStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.accentGreen));
             }
 
             Log.d(TAG, "Boost status updated: " + boostStatus.getText());

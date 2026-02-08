@@ -10,7 +10,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -365,32 +364,62 @@ public class ComingSoonTasksAdapter extends RecyclerView.Adapter<ComingSoonTasks
         }
     }
     private void showConfirmationDialog(Context context, String title, String message, String url, Runnable onConfirm) {
-        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_social_media, null);
+        try {
+            View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_social_media, null);
 
-        TextView titleText = dialogView.findViewById(R.id.socialTitle);
-        TextView messageText = dialogView.findViewById(R.id.socialMessage);
-        ImageView icon = dialogView.findViewById(R.id.socialIcon);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
-        Button continueButton = dialogView.findViewById(R.id.continueButton);
+            TextView titleText = dialogView.findViewById(R.id.socialTitle);
+            TextView messageText = dialogView.findViewById(R.id.socialMessage);
+            ImageView icon = dialogView.findViewById(R.id.socialIcon);
+            // FIXED: These are TextViews in the layout, not Buttons
+            TextView cancelButton = dialogView.findViewById(R.id.cancelButton);
+            TextView continueButton = dialogView.findViewById(R.id.continueButton);
 
-        titleText.setText(title);
-        messageText.setText(message);
-        // Optionally set icon with Glide or a resource
+            if (titleText != null) titleText.setText(title);
+            if (messageText != null) messageText.setText(message);
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(dialogView)
-                .setCancelable(false)
-                .create();
+            AlertDialog dialog = new AlertDialog.Builder(context)
+                    .setView(dialogView)
+                    .setCancelable(true)
+                    .create();
 
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
+            if (cancelButton != null) {
+                cancelButton.setOnClickListener(v -> dialog.dismiss());
+            }
 
-        continueButton.setOnClickListener(v -> {
-            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-            dialog.dismiss();
-            if (onConfirm != null) onConfirm.run();
-        });
+            if (continueButton != null) {
+                continueButton.setOnClickListener(v -> {
+                    try {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        context.startActivity(browserIntent);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error opening URL: " + url, e);
+                        ToastUtils.showError(context, "Could not open link");
+                    }
+                    dialog.dismiss();
+                    if (onConfirm != null) {
+                        // Run callback after a short delay to ensure URL opened
+                        handler.postDelayed(onConfirm, 500);
+                    }
+                });
+            }
 
-        dialog.show();
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            }
+            dialog.show();
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing confirmation dialog", e);
+            // Fallback: just open the URL directly
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                context.startActivity(browserIntent);
+                if (onConfirm != null) {
+                    handler.postDelayed(onConfirm, 500);
+                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Error opening URL directly", ex);
+            }
+        }
     }
 
 
@@ -500,7 +529,7 @@ public class ComingSoonTasksAdapter extends RecyclerView.Adapter<ComingSoonTasks
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         TextView taskTitle, taskMultiplier, taskDuration;
         ImageView checkmark;
-        Button claimTaskBoostBtn;
+        com.google.android.material.button.MaterialButton claimTaskBoostBtn;
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);

@@ -264,15 +264,7 @@ public class BoostManager {
             // MiningStreakManager not initialized
         }
 
-        // NEW: Apply lucky number boost
-        try {
-            DailyLuckyNumberManager luckyManager = DailyLuckyNumberManager.getInstance(context);
-            if (luckyManager.hasActiveBoost()) {
-                rate *= luckyManager.getActiveBoostMultiplier();
-            }
-        } catch (Exception e) {
-            // DailyLuckyNumberManager not initialized
-        }
+        // Lucky number boost removed - now handled by EngagementFeaturesManager
 
         // NEW: Apply achievement boost
         try {
@@ -483,11 +475,11 @@ public class BoostManager {
 
     public String getBoostIndicators() {
         StringBuilder indicators = new StringBuilder();
-        if (hasPermanentBoost) indicators.append("🚀");
-        if (isTemporaryBoostActive()) indicators.append("⚡");
-        if (isTwitterBoostActive()) indicators.append("📱");
-        if (isDailyCheckinBoostActive()) indicators.append("💎");
-        if (isAdWatched) indicators.append("📺");
+        if (hasPermanentBoost) indicators.append("+P");
+        if (isTemporaryBoostActive()) indicators.append("+B");
+        if (isTwitterBoostActive()) indicators.append("+S");
+        if (isDailyCheckinBoostActive()) indicators.append("+D");
+        if (isAdWatched) indicators.append("+A");
         return indicators.toString();
     }
 

@@ -43,39 +43,59 @@ public class ProfileFragment extends Fragment {
 
     private void setupClickListeners() {
         if (accountCard != null) {
-            accountCard.setOnClickListener(v ->
-                startActivity(new Intent(getContext(), ProfileEditActivity.class)));
+            accountCard.setOnClickListener(v -> {
+                if (isAdded() && getContext() != null) {
+                    startActivity(new Intent(getContext(), ProfileEditActivity.class));
+                }
+            });
         }
 
         if (privacyCard != null) {
-            privacyCard.setOnClickListener(v ->
-                startActivity(new Intent(getContext(), PrivacyPolicyActivity.class)));
+            privacyCard.setOnClickListener(v -> {
+                if (isAdded() && getContext() != null) {
+                    startActivity(new Intent(getContext(), PrivacyPolicyActivity.class));
+                }
+            });
         }
 
         if (termsCard != null) {
-            termsCard.setOnClickListener(v ->
-                startActivity(new Intent(getContext(), TermsConditionActivity.class)));
+            termsCard.setOnClickListener(v -> {
+                if (isAdded() && getContext() != null) {
+                    startActivity(new Intent(getContext(), TermsConditionActivity.class));
+                }
+            });
         }
 
         if (rateCard != null) {
-            rateCard.setOnClickListener(v -> showSocialMediaDialog(
-                    "Rate Lynx Network",
-                    "If you enjoy using the app, please rate us on the Play Store!",
-                    "https://play.google.com/store/apps/details?id=network.lynx.app"
-            ));
+            rateCard.setOnClickListener(v -> {
+                if (isAdded()) {
+                    showSocialMediaDialog(
+                        "Rate Lynx Network",
+                        "If you enjoy using the app, please rate us on the Play Store!",
+                        "https://play.google.com/store/apps/details?id=network.lynx.app"
+                    );
+                }
+            });
         }
 
         if (faqCard != null) {
-            faqCard.setOnClickListener(v ->
-                startActivity(new Intent(getContext(), FaqsActivity.class)));
+            faqCard.setOnClickListener(v -> {
+                if (isAdded() && getContext() != null) {
+                    startActivity(new Intent(getContext(), FaqsActivity.class));
+                }
+            });
         }
 
         if (supportCard != null) {
-            supportCard.setOnClickListener(v -> showSocialMediaDialog(
-                    "Contact Support",
-                    "Join our Telegram for support and updates!",
-                    "https://t.me/lynx_network_annoucement"
-            ));
+            supportCard.setOnClickListener(v -> {
+                if (isAdded()) {
+                    showSocialMediaDialog(
+                        "Contact Support",
+                        "Join our Telegram for support and updates!",
+                        "https://t.me/lynx_network_annoucement"
+                    );
+                }
+            });
         }
     }
 

@@ -1,21 +1,42 @@
 <resources>
+    <!-- ============================================ -->
+    <!-- PROFESSIONAL DARK THEME - MATERIAL DESIGN 3 -->
+    <!-- ============================================ -->
+
     <!-- Base Application Theme -->
     <style name="Base.Theme.Patra" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary Colors -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">@color/colorPrimary</item>
         <item name="colorSecondaryVariant">@color/colorPrimaryDark</item>
         <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Surface & Background -->
         <item name="android:statusBarColor">@color/backgroundColor</item>
         <item name="android:navigationBarColor">@color/backgroundColor</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowBackground">@color/backgroundColor</item>
         <item name="colorSurface">@color/cardBackground</item>
         <item name="colorOnSurface">@color/textPrimary</item>
+
+        <!-- Typography -->
+        <item name="android:fontFamily">sans-serif</item>
+
+        <!-- Smooth Animations -->
+        <item name="android:windowAnimationStyle">@style/WindowAnimationStyle</item>
     </style>
 
     <style name="Theme.Patra" parent="Base.Theme.Patra"/>
+
+    <!-- Window Animation Style -->
+    <style name="WindowAnimationStyle">
+        <item name="android:activityOpenEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:activityOpenExitAnimation">@android:anim/fade_out</item>
+        <item name="android:activityCloseEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:activityCloseExitAnimation">@android:anim/fade_out</item>
+    </style>
 
     <!-- Dark theme for ProfileEditActivity -->
     <style name="Theme.Patra.Dark" parent="Theme.MaterialComponents.DayNight.NoActionBar">
@@ -28,26 +49,132 @@
     <!-- Card Styles -->
     <style name="MinimalCard" parent="Widget.MaterialComponents.CardView">
         <item name="cardBackgroundColor">@color/cardBackground</item>
-        <item name="cardCornerRadius">14dp</item>
+        <item name="cardCornerRadius">@dimen/corner_radius_lg</item>
         <item name="cardElevation">0dp</item>
         <item name="strokeWidth">0dp</item>
     </style>
 
-    <!-- Text Styles -->
+    <style name="ElevatedCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/cardBackground</item>
+        <item name="cardCornerRadius">@dimen/corner_radius_lg</item>
+        <item name="cardElevation">@dimen/elevation_low</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="OutlinedCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/cardBackground</item>
+        <item name="cardCornerRadius">@dimen/corner_radius_md</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">@color/borderColor</item>
+    </style>
+
+    <!-- ============================================ -->
+    <!-- TYPOGRAPHY STYLES -->
+    <!-- ============================================ -->
+
+    <style name="TextDisplay" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
     <style name="TextHeadline" parent="TextAppearance.MaterialComponents.Headline6">
         <item name="android:textColor">@color/textPrimary</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">@dimen/text_headline</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextTitle" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextSubtitle" parent="TextAppearance.MaterialComponents.Subtitle2">
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">@dimen/text_subtitle</item>
         <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="TextBody" parent="TextAppearance.MaterialComponents.Body1">
         <item name="android:textColor">@color/textSecondary</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <style name="TextBodySmall" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">@dimen/text_body_small</item>
     </style>
 
     <style name="TextCaption" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textColor">@color/textTertiary</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">@dimen/text_caption</item>
+    </style>
+
+    <style name="TextOverline" parent="TextAppearance.MaterialComponents.Overline">
+        <item name="android:textColor">@color/textTertiary</item>
+        <item name="android:textSize">@dimen/text_overline</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.15</item>
+    </style>
+
+    <!-- ============================================ -->
+    <!-- BUTTON STYLES -->
+    <!-- ============================================ -->
+
+    <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_height">@dimen/button_height_lg</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="backgroundTint">@color/colorPrimary</item>
+        <item name="cornerRadius">@dimen/corner_radius_md</item>
+        <item name="rippleColor">@color/rippleLight</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <style name="SecondaryButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:layout_height">@dimen/button_height_lg</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">@dimen/corner_radius_md</item>
+        <item name="strokeColor">@color/borderColor</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="TextButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">@dimen/text_body_small</item>
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="rippleColor">@color/rippleLight</item>
+    </style>
+
+    <!-- ============================================ -->
+    <!-- INPUT FIELD STYLES -->
+    <!-- ============================================ -->
+
+    <style name="TextInputStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/borderColor</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/corner_radius_md</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/corner_radius_md</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/corner_radius_md</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/corner_radius_md</item>
+        <item name="hintTextColor">@color/textTertiary</item>
+        <item name="android:textColorHint">@color/textTertiary</item>
     </style>
 </resources>
 

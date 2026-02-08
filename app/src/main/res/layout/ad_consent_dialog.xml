@@ -1,33 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:background="@drawable/soft_card_background">
+    android:padding="@dimen/spacing_xxl"
+    android:background="@drawable/dialog_background">
+
+    <!-- Icon -->
+    <FrameLayout
+        android:layout_width="@dimen/icon_xxl"
+        android:layout_height="@dimen/icon_xxl"
+        android:layout_gravity="center"
+        android:layout_marginBottom="@dimen/spacing_lg"
+        android:background="@drawable/soft_icon_background">
+
+        <ImageView
+            android:layout_width="@dimen/icon_md"
+            android:layout_height="@dimen/icon_md"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_gift"
+            app:tint="@color/gold"
+            android:contentDescription="Reward"/>
+    </FrameLayout>
 
     <TextView
         android:id="@+id/consentDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Watch Ad for Reward?"
-        android:textSize="18sp"
+        android:textSize="@dimen/text_title"
         android:textStyle="bold"
         android:textColor="@color/textPrimary"
         android:gravity="center"
         android:fontFamily="sans-serif-medium"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginBottom="@dimen/spacing_sm"/>
 
     <TextView
         android:id="@+id/consentDialogMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Watch a short ad to unlock your reward!"
-        android:textSize="13sp"
+        android:textSize="@dimen/text_body_small"
         android:textColor="@color/textSecondary"
         android:gravity="center"
         android:lineSpacingExtra="4dp"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="@dimen/spacing_xxl"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -37,49 +55,51 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/watchAdButton"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="@dimen/button_height_lg"
             android:text="Watch Ad"
             android:textColor="@color/white"
-            android:textSize="14sp"
+            android:textSize="@dimen/text_body"
             android:textStyle="bold"
             android:textAllCaps="false"
             android:fontFamily="sans-serif-medium"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             app:backgroundTint="@color/colorPrimary"
-            app:cornerRadius="12dp"
+            app:cornerRadius="@dimen/corner_radius_md"
             app:elevation="0dp"
-            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+            app:icon="@drawable/ic_zap"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/spacing_sm"
+            app:iconTint="@color/white"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/skipButton"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="@dimen/button_height_md"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="Continue Without Ad"
             android:textColor="@color/textSecondary"
-            android:textSize="14sp"
+            android:textSize="@dimen/text_body_small"
             android:textAllCaps="false"
             android:fontFamily="sans-serif-medium"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:visibility="gone"
             app:backgroundTint="@color/cardBackgroundElevated"
-            app:cornerRadius="12dp"
-            app:elevation="0dp"
-            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+            app:cornerRadius="@dimen/corner_radius_md"
+            app:elevation="0dp"/>
 
         <TextView
             android:id="@+id/cancelButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_md"
             android:text="Cancel"
             android:textColor="@color/textTertiary"
-            android:textSize="13sp"
+            android:textSize="@dimen/text_body_small"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:padding="8dp"/>
+            android:padding="@dimen/spacing_sm"/>
     </LinearLayout>
 </LinearLayout>
 

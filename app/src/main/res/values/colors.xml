@@ -19,10 +19,11 @@
 
     <!-- Text Colors -->
     <color name="textPrimary">#FFFFFF</color>
-    <color name="textSecondary">#8892B0</color>
-    <color name="textTertiary">#5C6784</color>
+    <color name="textSecondary">#A8B2D1</color>
+    <color name="textTertiary">#6B7A99</color>
     <color name="primaryText">#FFFFFF</color>
-    <color name="secondaryText">#8892B0</color>
+    <color name="secondaryText">#A8B2D1</color>
+    <color name="divider">#1F2937</color>
 
     <!-- Accent Colors -->
     <color name="accent">#6C5CE7</color>

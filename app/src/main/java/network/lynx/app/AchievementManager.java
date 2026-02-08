@@ -193,7 +193,17 @@ public class AchievementManager {
                 public void onDataChange(DataSnapshot snapshot) {
                     Double current = snapshot.getValue(Double.class);
                     if (current == null) current = 0.0;
-                    userRef.child("totalcoins").setValue(current + type.getTokenReward());
+                    userRef.child("totalcoins").setValue(current + type.getTokenReward())
+                        .addOnCompleteListener(task -> {
+                            // FIXED: Notify WalletManager so balance updates immediately
+                            if (task.isSuccessful()) {
+                                try {
+                                    WalletManager.getInstance(context).refreshBalance();
+                                } catch (Exception e) {
+                                    Log.w(TAG, "Failed to notify WalletManager", e);
+                                }
+                            }
+                        });
                 }
 
                 @Override

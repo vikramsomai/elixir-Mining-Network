@@ -4,9 +4,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="6dp"
+    android:layout_marginBottom="@dimen/spacing_xs"
     app:cardBackgroundColor="@color/cardBackground"
-    app:cardCornerRadius="10dp"
+    app:cardCornerRadius="@dimen/corner_radius_md"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
@@ -14,38 +14,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:padding="@dimen/spacing_md"
         android:gravity="center_vertical">
 
         <!-- Medal for top 3 OR Profile Image -->
         <FrameLayout
-            android:layout_width="40dp"
-            android:layout_height="40dp">
+            android:layout_width="@dimen/profile_image_sm"
+            android:layout_height="@dimen/profile_image_sm">
 
             <ImageView
                 android:id="@+id/medal_image"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="@dimen/profile_image_sm"
+                android:layout_height="@dimen/profile_image_sm"
                 android:visibility="gone"
                 android:contentDescription="Medal" />
 
             <androidx.cardview.widget.CardView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                app:cardCornerRadius="20dp"
+                android:layout_width="@dimen/profile_image_sm"
+                android:layout_height="@dimen/profile_image_sm"
+                app:cardCornerRadius="@dimen/corner_radius_xl"
                 app:cardElevation="0dp">
 
                 <com.lelloman.identicon.view.ClassicIdenticonView
                     android:id="@+id/lead_img"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="@dimen/profile_image_sm"
+                    android:layout_height="@dimen/profile_image_sm"
                     android:background="@color/iconBackground"
                     app:hash="125634585" />
 
                 <ImageView
                     android:id="@+id/profilePic"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="@dimen/profile_image_sm"
+                    android:layout_height="@dimen/profile_image_sm"
                     android:scaleType="centerCrop"
                     android:visibility="gone"
                     android:contentDescription="Profile picture"/>
@@ -58,10 +58,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="@dimen/spacing_md"
             android:text="Username"
             android:textColor="@color/textPrimary"
-            android:textSize="14sp"
+            android:textSize="@dimen/text_body_small"
             android:textStyle="bold"
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"

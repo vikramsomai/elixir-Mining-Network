@@ -33,11 +33,11 @@ public class AdManager {
     public static final String AD_UNIT_MINING = "ca-app-pub-1396109779371789/9096627942";
     public static final String AD_UNIT_BOOST = "ca-app-pub-1396109779371789/9096627942"; // Same as mining for now
 
-    // Rate limiting constants
-    private static final long MIN_LOAD_INTERVAL = 30 * 1000; // 30 seconds between loads
-    private static final long RETRY_BASE_DELAY = 30 * 1000; // 30 seconds base retry delay
-    private static final int MAX_RETRIES = 2;
-    private static final int MAX_DAILY_REQUESTS = 200; // Conservative daily limit
+    // Rate limiting constants - RELAXED for better ad availability
+    private static final long MIN_LOAD_INTERVAL = 10 * 1000; // 10 seconds between loads (reduced from 30)
+    private static final long RETRY_BASE_DELAY = 15 * 1000; // 15 seconds base retry delay (reduced from 30)
+    private static final int MAX_RETRIES = 3; // Increased retries
+    private static final int MAX_DAILY_REQUESTS = 500; // Increased daily limit
     private static final long AD_EXPIRY_TIME = 55 * 60 * 1000; // 55 minutes
 
 
@@ -65,10 +65,24 @@ public class AdManager {
     }
 
     /**
+     * Start session tracking for ads
+     */
+    public void startSession() {
+        Log.d(TAG, "Ad session started");
+    }
+
+    /**
      * Load a rewarded ad with rate limiting and smart retry logic
      */
     public void loadRewardedAd(Context context, String adUnitId, AdLoadCallback callback) {
         final Context applicationContext = context.getApplicationContext();
+
+        // Always allow loading if no ad is ready
+        if (!isAdReady(adUnitId)) {
+            // Clear any blocking states
+            loadingStates.put(adUnitId, false);
+        }
+
         if (!canLoadAd(applicationContext, adUnitId)) {
             Log.d(TAG, "Cannot load ad for " + adUnitId + " - rate limited or conditions not met");
             if (callback != null) {
@@ -105,7 +119,7 @@ public class AdManager {
         RewardedAd.load(applicationContext, adUnitId, adRequest, new RewardedAdLoadCallback() {
             @Override
             public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                Log.e(TAG, "Ad failed to load for " + adUnitId + ": " + loadAdError.getMessage());
+                Log.e(TAG, "Ad failed to load for " + adUnitId + ": " + loadAdError.getMessage() + " (code: " + loadAdError.getCode() + ")");
                 loadingStates.put(adUnitId, false);
 
                 // Implement smart retry with exponential backoff
@@ -114,8 +128,8 @@ public class AdManager {
                     retryCount++;
                     retryCounts.put(adUnitId, retryCount);
 
-                    long baseDelay = RETRY_BASE_DELAY * (long) Math.pow(2, retryCount - 1); // Exponential backoff
-                    long jitter = (long) (Math.random() * 5000); // 0 to 5 seconds
+                    long baseDelay = RETRY_BASE_DELAY * (long) Math.pow(2, retryCount - 1);
+                    long jitter = (long) (Math.random() * 5000);
                     long delay = baseDelay + jitter;
                     Log.d(TAG, "Retrying ad load for " + adUnitId + " in " + delay + "ms (attempt " + retryCount + ")");
 
@@ -124,7 +138,7 @@ public class AdManager {
                     }, delay);
                 } else {
                     Log.e(TAG, "Max retries reached for " + adUnitId);
-                    retryCounts.put(adUnitId, 0); // Reset for next session
+                    retryCounts.put(adUnitId, 0);
                     if (callback != null) {
                         callback.onAdLoadFailed("Max retries reached: " + loadAdError.getMessage());
                     }
@@ -137,7 +151,7 @@ public class AdManager {
                 adCache.put(adUnitId, rewardedAd);
                 adLoadTimes.put(adUnitId, System.currentTimeMillis());
                 loadingStates.put(adUnitId, false);
-                retryCounts.put(adUnitId, 0); // Reset retry count on success
+                retryCounts.put(adUnitId, 0);
 
                 if (callback != null) {
                     callback.onAdLoaded();
@@ -150,6 +164,13 @@ public class AdManager {
      * Show a rewarded ad with proper lifecycle management
      */
     public void showRewardedAd(Activity activity, String adUnitId, AdShowCallback callback) {
+        showRewardedAd(activity, adUnitId, callback, false);
+    }
+
+    /**
+     * Show a rewarded ad - bypassChecks parameter for flexibility
+     */
+    public void showRewardedAd(Activity activity, String adUnitId, AdShowCallback callback, boolean bypassChecks) {
         if (activity == null || activity.isDestroyed() || activity.isFinishing()) {
             Log.w(TAG, "Activity is null/destroyed/finishing, cannot show ad");
             if (callback != null) {
@@ -184,6 +205,7 @@ public class AdManager {
         // Force load by clearing rate limit for this specific request
         lastLoadTimes.remove(adUnitId);
         loadingStates.put(adUnitId, false);
+        retryCounts.put(adUnitId, 0);
 
         loadRewardedAd(activity, adUnitId, new AdLoadCallback() {
             @Override
@@ -240,11 +262,12 @@ public class AdManager {
                 Log.e(TAG, "Ad failed to show for " + adUnitId + ": " + adError.getMessage());
                 adCache.remove(adUnitId);
                 adLoadTimes.remove(adUnitId);
-                // Re-enable app open ads
                 suppressAppOpenAds(activity, false);
                 if (callback != null) {
                     callback.onAdShowFailed(adError.getMessage());
                 }
+                // Try to preload next ad
+                smartPreloadAd(activity, adUnitId);
             }
 
             @Override
@@ -252,13 +275,14 @@ public class AdManager {
                 Log.d(TAG, "Ad dismissed for " + adUnitId);
                 adCache.remove(adUnitId);
                 adLoadTimes.remove(adUnitId);
-                // Re-enable app open ads after a short delay to prevent immediate trigger
                 new Handler(Looper.getMainLooper()).postDelayed(() -> {
                     suppressAppOpenAds(activity, false);
                 }, 1000);
                 if (callback != null) {
                     callback.onAdDismissed();
                 }
+                // Preload next ad immediately
+                smartPreloadAd(activity, adUnitId);
             }
         });
 
@@ -309,10 +333,30 @@ public class AdManager {
     }
 
     /**
+     * Preload ad immediately without smart checks
+     */
+    public void preloadAd(Context context, String adUnitId) {
+        if (!isAdReady(adUnitId) && !isLoading(adUnitId)) {
+            Log.d(TAG, "Preloading ad for " + adUnitId);
+            loadRewardedAd(context, adUnitId, new AdLoadCallback() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "Preloaded ad successfully for " + adUnitId);
+                }
+
+                @Override
+                public void onAdLoadFailed(String error) {
+                    Log.d(TAG, "Preload failed for " + adUnitId + ": " + error);
+                }
+            });
+        }
+    }
+
+    /**
      * Intelligent preloading based on user behavior
      */
     public void smartPreloadAd(Context context, String adUnitId) {
-        if (shouldPreloadAd(context, adUnitId) && !isAdReady(adUnitId) && !isLoading(adUnitId)) {
+        if (!isAdReady(adUnitId) && !isLoading(adUnitId)) {
             Log.d(TAG, "Smart preloading ad for " + adUnitId);
             loadRewardedAd(context, adUnitId, new AdLoadCallback() {
                 @Override
@@ -329,7 +373,7 @@ public class AdManager {
     }
 
     /**
-     * Rate limiting logic
+     * Rate limiting logic - simplified
      */
     private boolean canLoadAd(Context context, String adUnitId) {
         // Check if already loading
@@ -345,41 +389,7 @@ public class AdManager {
             return false;
         }
 
-        // Check daily request limit
-        if (!canMakeDailyRequest(context)) {
-            Log.w(TAG, "Daily request limit reached");
-            return false;
-        }
-
         return true;
-    }
-
-    /**
-     * Daily request limiting with automatic reset
-     */
-    private boolean canMakeDailyRequest(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String today = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date());
-        String lastDate = prefs.getString(KEY_LAST_DATE, "");
-
-        if (!today.equals(lastDate)) {
-            // Reset for new day
-            prefs.edit()
-                    .putString(KEY_LAST_DATE, today)
-                    .putInt(KEY_DAILY_REQUESTS, 0)
-                    .apply();
-            Log.d(TAG, "Reset daily ad request counter for new day");
-            return true;
-        }
-
-        int dailyRequests = prefs.getInt(KEY_DAILY_REQUESTS, 0);
-        boolean canRequest = dailyRequests < MAX_DAILY_REQUESTS;
-
-        if (!canRequest) {
-            Log.w(TAG, "Daily request limit reached: " + dailyRequests + "/" + MAX_DAILY_REQUESTS);
-        }
-
-        return canRequest;
     }
 
     /**
@@ -387,28 +397,18 @@ public class AdManager {
      */
     private void recordAdRequest(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        int current = prefs.getInt(KEY_DAILY_REQUESTS, 0);
-        prefs.edit().putInt(KEY_DAILY_REQUESTS, current + 1).apply();
-        Log.d(TAG, "Daily ad requests: " + (current + 1) + "/" + MAX_DAILY_REQUESTS);
-    }
+        String today = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(new Date());
+        String lastDate = prefs.getString(KEY_LAST_DATE, "");
 
-    /**
-     * Smart preloading logic based on user behavior patterns
-     */
-    private boolean shouldPreloadAd(Context context, String adUnitId) {
-        SharedPreferences prefs = context.getSharedPreferences("user_behavior", Context.MODE_PRIVATE);
-        String usageKey = adUnitId + "_usage_count";
-        String lastUsageKey = adUnitId + "_last_usage";
-
-        int usageCount = prefs.getInt(usageKey, 0);
-        long lastUsage = prefs.getLong(lastUsageKey, 0);
-        long timeSinceLastUsage = System.currentTimeMillis() - lastUsage;
-
-        // Preload if user frequently uses this feature (>3 times) and used it recently (within 24 hours)
-        boolean frequentUser = usageCount > 3;
-        boolean recentUser = timeSinceLastUsage < (24 * 60 * 60 * 1000); // 24 hours
-
-        return frequentUser && recentUser;
+        if (!today.equals(lastDate)) {
+            prefs.edit()
+                    .putString(KEY_LAST_DATE, today)
+                    .putInt(KEY_DAILY_REQUESTS, 1)
+                    .apply();
+        } else {
+            int current = prefs.getInt(KEY_DAILY_REQUESTS, 0);
+            prefs.edit().putInt(KEY_DAILY_REQUESTS, current + 1).apply();
+        }
     }
 
     /**
@@ -429,30 +429,6 @@ public class AdManager {
     }
 
     /**
-     * Get comprehensive ad statistics
-     */
-    public AdStats getAdStats(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        int dailyRequests = prefs.getInt(KEY_DAILY_REQUESTS, 0);
-
-        int readyAds = 0;
-        int loadingAds = 0;
-        int expiredAds = 0;
-
-        for (String adUnitId : new String[]{AD_UNIT_CHECK_IN, AD_UNIT_SPIN, AD_UNIT_MINING, AD_UNIT_BOOST}) {
-            if (isLoading(adUnitId)) {
-                loadingAds++;
-            } else if (isAdReady(adUnitId)) {
-                readyAds++;
-            } else if (adCache.containsKey(adUnitId) && isAdExpired(adUnitId)) {
-                expiredAds++;
-            }
-        }
-
-        return new AdStats(dailyRequests, MAX_DAILY_REQUESTS, readyAds, loadingAds, expiredAds);
-    }
-
-    /**
      * Clean up expired ads and reset states
      */
     public void cleanupExpiredAds() {
@@ -466,7 +442,7 @@ public class AdManager {
     }
 
     /**
-     * Clear all cache and reset states (call when app is destroyed)
+     * Clear all cache and reset states
      */
     public void clearCache() {
         Log.d(TAG, "Clearing ad cache and resetting states");
@@ -478,7 +454,7 @@ public class AdManager {
     }
 
     /**
-     * Force reload an ad (use sparingly)
+     * Force reload an ad
      */
     public void forceReloadAd(Context context, String adUnitId, AdLoadCallback callback) {
         Log.d(TAG, "Force reloading ad for " + adUnitId);
@@ -486,6 +462,7 @@ public class AdManager {
         adLoadTimes.remove(adUnitId);
         loadingStates.put(adUnitId, false);
         lastLoadTimes.remove(adUnitId);
+        retryCounts.put(adUnitId, 0);
 
         loadRewardedAd(context, adUnitId, callback);
     }

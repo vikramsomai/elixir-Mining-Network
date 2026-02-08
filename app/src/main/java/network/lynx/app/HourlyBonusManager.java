@@ -167,7 +167,16 @@ public class HourlyBonusManager {
                     Double current = snapshot.getValue(Double.class);
                     if (current == null) current = 0.0;
                     double newBalance = current + bonusAmount;
-                    userRef.child("totalcoins").setValue(newBalance);
+                    userRef.child("totalcoins").setValue(newBalance).addOnCompleteListener(task -> {
+                        // FIXED: Notify WalletManager so balance updates immediately
+                        if (task.isSuccessful()) {
+                            try {
+                                WalletManager.getInstance(context).refreshBalance();
+                            } catch (Exception e) {
+                                Log.w(TAG, "Failed to notify WalletManager", e);
+                            }
+                        }
+                    });
 
                     String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
                             .format(new java.util.Date());

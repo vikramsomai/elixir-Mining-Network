@@ -1,25 +1,33 @@
 package network.lynx.app;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * Splash Screen with improved UX
+ *
+ * SENIOR DEVELOPER BEST PRACTICES:
+ * - Uses SessionManager to check login state
+ * - Uses NetworkUtils for connectivity
+ * - Proper loading states
+ * - Smooth transitions
+ */
 public class splash extends AppCompatActivity {
 
-    private static final int SPLASH_TIME_OUT = 1000; // 2 seconds
+    private static final String TAG = "SplashActivity";
+    private static final int SPLASH_TIMEOUT = 1500; // 1.5 seconds for branding
+
     private TextView noInternetText;
     private Button retryButton;
+    private ProgressBar loadingProgress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,42 +37,78 @@ public class splash extends AppCompatActivity {
 
         noInternetText = findViewById(R.id.noInternetText);
         retryButton = findViewById(R.id.retryButton);
+        loadingProgress = findViewById(R.id.loadingProgress);
 
-        checkInternetAndProceed();
+        retryButton.setOnClickListener(v -> {
+            hideErrorUI();
+            checkAndProceed();
+        });
 
-        retryButton.setOnClickListener(v -> checkInternetAndProceed());
+        // Start with a delay for branding
+        new Handler().postDelayed(this::checkAndProceed, SPLASH_TIMEOUT);
     }
 
-    private void checkInternetAndProceed() {
-        new Handler().postDelayed(() -> {
-            if (isConnectedToInternet()) {
-                startActivity(new Intent(splash.this, LoginActivity.class));
-                finish();
+    private void checkAndProceed() {
+        // Hide error UI while checking
+        hideErrorUI();
+
+        try {
+            // Use NetworkUtils for proper connectivity check
+            NetworkUtils networkUtils = NetworkUtils.getInstance(this);
+
+            if (networkUtils.isConnected()) {
+                proceedToNextScreen();
             } else {
-                noInternetText.setVisibility(View.VISIBLE);
-                retryButton.setVisibility(View.VISIBLE);
-                ToastUtils.showError(splash.this, "No internet connection");
+                // Check if we have cached data and can proceed offline
+                SessionManager sessionManager = SessionManager.getInstance(this);
+                if (sessionManager.isLoggedIn() && sessionManager.getTotalCoins() > 0) {
+                    // User has cached data, allow offline access
+                    proceedToNextScreen();
+                } else {
+                    // No internet and no cached data
+                    showNoInternetUI();
+                }
             }
-        }, SPLASH_TIME_OUT);
+        } catch (Exception e) {
+            // Fallback - try to proceed anyway
+            proceedToNextScreen();
+        }
     }
 
-    private boolean isConnectedToInternet() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return false;
+    private void proceedToNextScreen() {
+        try {
+            SessionManager sessionManager = SessionManager.getInstance(this);
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            android.net.Network network = cm.getActiveNetwork();
-            if (network == null) return false;
+            Intent intent;
+            if (sessionManager.isLoggedIn()) {
+                // User is logged in, go to main
+                sessionManager.updateActivity();
+                intent = new Intent(this, MainActivity.class);
+            } else {
+                // Not logged in, go to login
+                intent = new Intent(this, LoginActivity.class);
+            }
 
-            NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
-            return capabilities != null &&
-                    (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
-        } else {
-            // For older devices
-            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            return activeNetwork != null && activeNetwork.isConnected();
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            finish();
+        } catch (Exception e) {
+            // Fallback to login
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
         }
+    }
+
+    private void hideErrorUI() {
+        if (loadingProgress != null) loadingProgress.setVisibility(View.VISIBLE);
+        if (noInternetText != null) noInternetText.setVisibility(View.GONE);
+        if (retryButton != null) retryButton.setVisibility(View.GONE);
+    }
+
+    private void showNoInternetUI() {
+        if (loadingProgress != null) loadingProgress.setVisibility(View.GONE);
+        if (noInternetText != null) noInternetText.setVisibility(View.VISIBLE);
+        if (retryButton != null) retryButton.setVisibility(View.VISIBLE);
+        ToastUtils.showError(this, "No internet connection");
     }
 }

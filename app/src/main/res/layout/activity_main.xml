@@ -15,34 +15,41 @@
         android:layout_above="@+id/bottom_container"
         android:background="@color/backgroundColor" />
 
-    <!-- Bottom Navigation Container -->
-    <RelativeLayout
+    <!-- Bottom Navigation Container - Clean minimal design -->
+    <LinearLayout
         android:id="@+id/bottom_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/backgroundColor"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="10dp">
+        android:orientation="vertical"
+        android:background="@color/backgroundColor">
+
+        <!-- Subtle top divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/divider_height"
+            android:background="@color/divider"
+            android:alpha="0.5"/>
 
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomview"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="@dimen/bottom_nav_height"
             android:background="@color/backgroundColor"
             android:elevation="0dp"
+            android:paddingTop="@dimen/spacing_sm"
+            android:paddingBottom="@dimen/spacing_sm"
             app:itemBackground="@android:color/transparent"
-            app:itemIconSize="24dp"
+            app:itemIconSize="@dimen/bottom_nav_icon_size"
             app:itemIconTint="@drawable/nav_icon_tint"
-            app:itemPaddingBottom="4dp"
-            app:itemPaddingTop="8dp"
+            app:itemPaddingBottom="@dimen/spacing_xs"
+            app:itemPaddingTop="@dimen/spacing_sm"
             app:itemTextColor="@drawable/nav_text_color"
             app:labelVisibilityMode="labeled"
             app:itemTextAppearanceActive="@style/BottomNavTextActive"
             app:itemTextAppearanceInactive="@style/BottomNavTextInactive"
             app:menu="@menu/bottom_nav_menu" />
 
-    </RelativeLayout>
+    </LinearLayout>
 
 </RelativeLayout>

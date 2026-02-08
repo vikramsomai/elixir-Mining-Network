@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Outer circle -->
+    <path
+        android:fillColor="#6C5CE7"
+        android:pathData="M60,10A50,50 0 1,1 60,110A50,50 0 1,1 60,10z" />
+
+    <!-- Inner circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,20A40,40 0 1,1 60,100A40,40 0 1,1 60,20z" />
+
+    <!-- Segment lines -->
+    <path
+        android:strokeColor="#6C5CE7"
+        android:strokeWidth="2"
+        android:pathData="M60,20L60,100" />
+
+    <path
+        android:strokeColor="#6C5CE7"
+        android:strokeWidth="2"
+        android:pathData="M20,60L100,60" />
+
+    <path
+        android:strokeColor="#6C5CE7"
+        android:strokeWidth="2"
+        android:pathData="M28,28L92,92" />
+
+    <path
+        android:strokeColor="#6C5CE7"
+        android:strokeWidth="2"
+        android:pathData="M28,92L92,28" />
+
+    <!-- Center circle -->
+    <path
+        android:fillColor="#6C5CE7"
+        android:pathData="M60,50A10,10 0 1,1 60,70A10,10 0 1,1 60,50z" />
+
+    <!-- Pointer -->
+    <path
+        android:fillColor="#F1C40F"
+        android:pathData="M55,5L60,15L65,5z" />
+</vector>

@@ -1,8 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- ============================================ -->
+    <!-- PROFESSIONAL DESIGN SYSTEM DIMENSIONS -->
+    <!-- ============================================ -->
+
+    <!-- Corner Radius - Consistent across app -->
+    <dimen name="corner_radius_xs">4dp</dimen>
+    <dimen name="corner_radius_sm">8dp</dimen>
+    <dimen name="corner_radius_md">12dp</dimen>
+    <dimen name="corner_radius_lg">16dp</dimen>
+    <dimen name="corner_radius_xl">20dp</dimen>
+    <dimen name="corner_radius_xxl">24dp</dimen>
+    <dimen name="corner_radius_pill">28dp</dimen>
     <dimen name="glass_corner_radius">28dp</dimen>
+
+    <!-- Spacing - 4dp grid system -->
+    <dimen name="spacing_xxs">2dp</dimen>
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_lg">16dp</dimen>
+    <dimen name="spacing_xl">20dp</dimen>
+    <dimen name="spacing_xxl">24dp</dimen>
+    <dimen name="spacing_xxxl">32dp</dimen>
+
+    <!-- Screen Padding -->
+    <dimen name="screen_padding_horizontal">20dp</dimen>
+    <dimen name="screen_padding_vertical">16dp</dimen>
+
+    <!-- Elevations -->
     <dimen name="glass_elevation">12dp</dimen>
+    <dimen name="elevation_none">0dp</dimen>
+    <dimen name="elevation_low">2dp</dimen>
+    <dimen name="elevation_medium">4dp</dimen>
+    <dimen name="elevation_high">8dp</dimen>
+
+    <!-- Icon Sizes -->
+    <dimen name="icon_xs">16dp</dimen>
+    <dimen name="icon_sm">20dp</dimen>
+    <dimen name="icon_md">24dp</dimen>
+    <dimen name="icon_lg">32dp</dimen>
+    <dimen name="icon_xl">40dp</dimen>
+    <dimen name="icon_xxl">48dp</dimen>
+
+    <!-- Button Sizes -->
+    <dimen name="button_height_sm">36dp</dimen>
+    <dimen name="button_height_md">48dp</dimen>
+    <dimen name="button_height_lg">56dp</dimen>
+    <dimen name="button_min_width">120dp</dimen>
+
+    <!-- Card Sizes -->
+    <dimen name="card_padding_sm">12dp</dimen>
+    <dimen name="card_padding_md">16dp</dimen>
+    <dimen name="card_padding_lg">20dp</dimen>
+    <dimen name="card_margin">8dp</dimen>
+
+    <!-- Bottom Navigation -->
     <dimen name="nav_item_corner_radius">18dp</dimen>
-    <dimen name="bottom_nav_height">80dp</dimen>
+    <dimen name="bottom_nav_height">64dp</dimen>
     <dimen name="bottom_nav_margin">20dp</dimen>
+    <dimen name="bottom_nav_icon_size">24dp</dimen>
+
+    <!-- Profile Image -->
+    <dimen name="profile_image_sm">40dp</dimen>
+    <dimen name="profile_image_md">56dp</dimen>
+    <dimen name="profile_image_lg">80dp</dimen>
+    <dimen name="profile_image_xl">120dp</dimen>
+
+    <!-- Text Sizes -->
+    <dimen name="text_display">32sp</dimen>
+    <dimen name="text_headline">24sp</dimen>
+    <dimen name="text_title">20sp</dimen>
+    <dimen name="text_subtitle">18sp</dimen>
+    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_body_small">14sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_overline">10sp</dimen>
+
+    <!-- Mining Blob -->
+    <dimen name="mining_blob_size">280dp</dimen>
+    <dimen name="mining_blob_container_padding">24dp</dimen>
+
+    <!-- Touch Targets (Accessibility) -->
+    <dimen name="touch_target_min">48dp</dimen>
+
+    <!-- Divider -->
+    <dimen name="divider_height">1dp</dimen>
 </resources>

@@ -32,13 +32,12 @@ public class AdConsentManager {
         }
 
         showConsentDialog(activity,
-                "Daily Check-in Reward",
-                "Watch a short ad to claim your daily check-in reward and maintain your streak!\n\n" +
-                        "🎁 What you'll get:\n" +
-                        "• Daily LYX tokens based on your streak\n" +
-                        "• Streak multiplier bonus\n" +
-                        "• Level progression points\n\n" +
-                        "The ad helps us keep the app free and reward our users.",
+                "Daily Check-in",
+                "Watch a short ad to claim your daily reward.\n\n" +
+                        "You'll receive:\n" +
+                        "• Daily LYX tokens\n" +
+                        "• Streak bonus\n" +
+                        "• Level progression",
                 "checkin",
                 callback);
     }
@@ -53,14 +52,12 @@ public class AdConsentManager {
         }
 
         showConsentDialog(activity,
-                "Spin Wheel Reward",
-                "Watch a short ad to earn a spin on our reward wheel!\n\n" +
-                        "🎰 What you'll get:\n" +
+                "Spin Wheel",
+                "Watch a short ad to earn a spin.\n\n" +
+                        "You'll receive:\n" +
                         "• Chance to win LYX tokens\n" +
                         "• Bonus multipliers\n" +
-                        "• Special prizes and rewards\n" +
-                        "• Up to 5 spins per day\n\n" +
-                        "Each ad gives you one spin opportunity.",
+                        "• Special rewards",
                 "spin",
                 callback);
     }
@@ -75,14 +72,12 @@ public class AdConsentManager {
         }
 
         showConsentDialog(activity,
-                "Start Mining Session",
-                "Watch a short ad to start your 24-hour mining session!\n\n" +
-                        "⛏️ What you'll get:\n" +
-                        "• Higher mining rate (2x normal speed)\n" +
-                        "• 24 hours of continuous mining\n" +
-                        "• Automatic LYX token generation\n" +
-                        "• Referral bonus multipliers\n\n" +
-                        "Without the ad, you can still mine at a slower rate.",
+                "Start Mining",
+                "Watch a short ad to start mining at 2x speed.\n\n" +
+                        "You'll receive:\n" +
+                        "• 2x mining rate\n" +
+                        "• 24 hours continuous mining\n" +
+                        "• Automatic token generation",
                 "mining",
                 callback);
     }
@@ -97,16 +92,44 @@ public class AdConsentManager {
         }
 
         showConsentDialog(activity,
-                "Boost Mining Speed",
-                "Watch a short ad to boost your mining speed!\n\n" +
-                        "🚀 What you'll get:\n" +
-                        "• 20% faster mining rate\n" +
-                        "• 1 hour of boosted mining\n" +
-                        "• Extra LYX token generation\n" +
-                        "• Stackable with other bonuses\n\n" +
-                        "This temporary boost will significantly increase your earnings.",
+                "Boost Mining",
+                "Watch a short ad to boost your mining speed.\n\n" +
+                        "You'll receive:\n" +
+                        "• 20% faster mining\n" +
+                        "• 1 hour boost duration\n" +
+                        "• Extra token generation",
                 "boost",
                 callback);
+    }
+
+    /**
+     * Show minimal consent dialog for game features (prediction, coinflip, etc.)
+     */
+    public static void showMinimalConsentDialog(Activity activity, String gameType, ConsentCallback callback) {
+        if (hasRecentConsent(activity, gameType)) {
+            callback.onConsentGiven();
+            return;
+        }
+
+        String title;
+        String message;
+
+        switch (gameType) {
+            case "prediction":
+                title = "Daily Prediction";
+                message = "Watch a short ad to play the daily prediction game and win up to 25 LYX!";
+                break;
+            case "coinflip":
+                title = "Coin Flip";
+                message = "Watch a short ad to play the coin flip game and double your bet!";
+                break;
+            default:
+                title = "Play Game";
+                message = "Watch a short ad to unlock this game and win rewards!";
+                break;
+        }
+
+        showConsentDialog(activity, title, message, gameType, callback);
     }
 
     /**

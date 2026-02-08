@@ -1,21 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/custom_toast_container"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:background="@drawable/soft_card_background"
+    android:background="@drawable/toast_background"
     android:orientation="horizontal"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="12dp"
-    android:gravity="center_vertical">
+    android:paddingHorizontal="@dimen/spacing_lg"
+    android:paddingVertical="@dimen/spacing_md"
+    android:gravity="center_vertical"
+    android:elevation="@dimen/elevation_medium">
+
+    <ImageView
+        android:id="@+id/toast_icon"
+        android:layout_width="@dimen/icon_sm"
+        android:layout_height="@dimen/icon_sm"
+        android:layout_marginEnd="@dimen/spacing_sm"
+        android:visibility="gone"
+        app:tint="@color/textPrimary"
+        android:contentDescription="Toast icon"/>
 
     <TextView
         android:id="@+id/toast_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/textPrimary"
-        android:textSize="13sp"
-        android:fontFamily="sans-serif-medium"/>
+        android:textSize="@dimen/text_body_small"
+        android:fontFamily="sans-serif-medium"
+        android:maxWidth="280dp"/>
 </LinearLayout>
 

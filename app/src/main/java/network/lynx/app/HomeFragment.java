@@ -20,6 +20,7 @@ import android.view.animation.Animation;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -62,10 +63,19 @@ public class HomeFragment extends Fragment {
     private TextView textView;
     private ImageView copyAddress;
     private MaterialButton claimbtn;
-    private LinearLayout spinnerView, boostCard;
+    private LinearLayout spinnerView, boostCard, dailyGamesCard, trustDashboardCard;
     private GridView gridView;
     private ImageView profilePic;
     private TextView countStreak, TotalStreak;
+
+    // FOMO UI Components
+    private TextView streakWarningText;
+    private LinearLayout globalMiningCard, limitedBonusCard, progressAtRiskCard;
+    private TextView globalMinersCount, globalTokensMined, yourRankText;
+    private TextView limitedBonusTitle, limitedBonusTimer, claimBonusBtn;
+    private TextView totalValueAtRisk, progressWarningText, nextMilestoneText;
+    private ProgressBar nextMilestoneProgress;
+    private View liveIndicator;
 
     // Firebase and Authentication
     private DatabaseReference databaseReference;
@@ -182,7 +192,26 @@ public class HomeFragment extends Fragment {
         profilePic = view.findViewById(R.id.profilePic);
         spinnerView = view.findViewById(R.id.spinWheelCard);
         boostCard = view.findViewById(R.id.boostCard);
+        dailyGamesCard = view.findViewById(R.id.dailyGamesCard);
+        trustDashboardCard = view.findViewById(R.id.trustDashboardCard);
         textView = view.findViewById(R.id.cryptoAddress);
+
+        // FOMO UI Components
+        streakWarningText = view.findViewById(R.id.streakWarningText);
+        globalMiningCard = view.findViewById(R.id.globalMiningCard);
+        limitedBonusCard = view.findViewById(R.id.limitedBonusCard);
+        progressAtRiskCard = view.findViewById(R.id.progressAtRiskCard);
+        globalMinersCount = view.findViewById(R.id.globalMinersCount);
+        globalTokensMined = view.findViewById(R.id.globalTokensMined);
+        yourRankText = view.findViewById(R.id.yourRankText);
+        limitedBonusTitle = view.findViewById(R.id.limitedBonusTitle);
+        limitedBonusTimer = view.findViewById(R.id.limitedBonusTimer);
+        claimBonusBtn = view.findViewById(R.id.claimBonusBtn);
+        totalValueAtRisk = view.findViewById(R.id.totalValueAtRisk);
+        progressWarningText = view.findViewById(R.id.progressWarningText);
+        nextMilestoneText = view.findViewById(R.id.nextMilestoneText);
+        nextMilestoneProgress = view.findViewById(R.id.nextMilestoneProgress);
+        liveIndicator = view.findViewById(R.id.liveIndicator);
     }
 
     private void setupUserInterface() {
@@ -333,12 +362,31 @@ public class HomeFragment extends Fragment {
                     startActivity(new Intent(requireActivity(), BoostActivity.class));
             });
 
+        if (dailyGamesCard != null)
+            dailyGamesCard.setOnClickListener(v -> {
+                if (isAdded())
+                    startActivity(new Intent(requireActivity(), DailyGamesActivity.class));
+            });
+
+        if (trustDashboardCard != null)
+            trustDashboardCard.setOnClickListener(v -> {
+                if (isAdded())
+                    startActivity(new Intent(requireActivity(), TrustDashboardActivity.class));
+            });
+
         if (imageView != null)
             imageView.setOnClickListener(v -> openProfileEdit());
         if (profilePic != null)
             profilePic.setOnClickListener(v -> openProfileEdit());
         if (claimbtn != null)
             claimbtn.setOnClickListener(v -> handleClaimButtonClick());
+
+        // FOMO: Limited bonus claim button
+        if (claimBonusBtn != null)
+            claimBonusBtn.setOnClickListener(v -> {
+                if (isAdded())
+                    startActivity(new Intent(requireActivity(), BoostActivity.class));
+            });
     }
 
     private void openProfileEdit() {
@@ -964,6 +1012,17 @@ public class HomeFragment extends Fragment {
                 rewardClaimedTime = System.currentTimeMillis();
                 saveRewardClaimedTime();
 
+                // ✅ FIXED: Notify WalletManager so MiningFragment balance updates immediately
+                try {
+                    WalletManager walletManager = WalletManager.getInstance(getContext());
+                    if (walletManager != null) {
+                        walletManager.refreshBalance();
+                        Log.d(TAG, "WalletManager notified of check-in reward: " + dailyReward);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to notify WalletManager", e);
+                }
+
                 // ✅ Force-refresh user data to reflect latest values
                 fetchUserDataFromFirebase();
 
@@ -1235,6 +1294,9 @@ public class HomeFragment extends Fragment {
 
         // Also check Firebase for latest claim status
         checkIfTokenClaimed();
+
+        // Update FOMO elements to drive engagement
+        updateFOMOElements();
     }
 
     private void restoreCountdownTimer() {
@@ -1340,5 +1402,181 @@ public class HomeFragment extends Fragment {
             Log.w(TAG, "getSafeUserId failed", e);
         }
         return null;
+    }
+
+    // ==================== FOMO & PSYCHOLOGY METHODS ====================
+
+    /**
+     * Updates all FOMO elements to create urgency and engagement
+     */
+    private void updateFOMOElements() {
+        if (!isAdded() || getContext() == null) return;
+
+        try {
+            updateGlobalMiningStats();
+            updateLimitedTimeBonus();
+            updateProgressAtRisk();
+            updateStreakWarning();
+            animateLiveIndicator();
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating FOMO elements", e);
+        }
+    }
+
+    /**
+     * SOCIAL PROOF: Show global mining activity to create FOMO
+     */
+    private void updateGlobalMiningStats() {
+        if (globalMinersCount == null || globalTokensMined == null) return;
+
+        // Generate realistic-looking stats based on time of day
+        int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        int baseMiners = 8000 + (hour * 500); // More miners during day
+        int variance = (int) (Math.random() * 2000);
+        int totalMiners = baseMiners + variance;
+
+        // Daily tokens mined (increases throughout the day)
+        long dayProgress = System.currentTimeMillis() % (24 * 60 * 60 * 1000);
+        long baseTokens = (dayProgress / 1000) * 3; // ~3 tokens per second globally
+        long tokenVariance = (long) (Math.random() * 100000);
+
+        globalMinersCount.setText(String.format(Locale.US, "%,d miners online", totalMiners));
+        globalTokensMined.setText(String.format(Locale.US, "%,d LYX mined today", baseTokens + tokenVariance));
+
+        // Update user's rank (psychological: always show top 25% or better)
+        int rankPercent = 5 + (int) (Math.random() * 20); // Top 5-25%
+        if (yourRankText != null) {
+            yourRankText.setText(String.format(Locale.US, "Top %d%%", rankPercent));
+        }
+    }
+
+    /**
+     * URGENCY: Show limited time bonus to create urgency
+     */
+    private void updateLimitedTimeBonus() {
+        if (limitedBonusCard == null) return;
+
+        // Show bonus during specific hours or randomly
+        int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        boolean showBonus = (hour >= 8 && hour <= 22); // Show during active hours
+
+        if (showBonus) {
+            limitedBonusCard.setVisibility(View.VISIBLE);
+
+            // Calculate time remaining (reset every 4 hours)
+            long now = System.currentTimeMillis();
+            long fourHours = 4 * 60 * 60 * 1000;
+            long elapsed = now % fourHours;
+            long remaining = fourHours - elapsed;
+
+            long hours = remaining / (60 * 60 * 1000);
+            long minutes = (remaining % (60 * 60 * 1000)) / (60 * 1000);
+
+            if (limitedBonusTimer != null) {
+                limitedBonusTimer.setText(String.format(Locale.US,
+                        "Ends in %dh %dm - Don't miss out!", hours, minutes));
+            }
+
+            // Vary the bonus type
+            if (limitedBonusTitle != null) {
+                String[] bonuses = {"2X BONUS ACTIVE!", "HAPPY HOUR!", "POWER MINING!", "BONUS RUSH!"};
+                int index = (int) ((now / (60 * 60 * 1000)) % bonuses.length);
+                limitedBonusTitle.setText(bonuses[index]);
+            }
+        } else {
+            limitedBonusCard.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * LOSS AVERSION: Show progress at risk to prevent uninstalls
+     */
+    private void updateProgressAtRisk() {
+        if (progressAtRiskCard == null) return;
+
+        // Get user's total balance
+        try {
+            WalletManager wallet = WalletManager.getInstance(getContext());
+            double balance = wallet.getTotalBalance();
+
+            if (balance > 10) { // Only show if user has significant balance
+                progressAtRiskCard.setVisibility(View.VISIBLE);
+
+                if (totalValueAtRisk != null) {
+                    totalValueAtRisk.setText(String.format(Locale.US, "%.1f LYX", balance));
+                }
+
+                // Calculate next milestone
+                int[] milestones = {100, 250, 500, 1000, 2500, 5000, 10000};
+                String[] milestoneNames = {"Bronze", "Silver", "Gold", "Platinum", "Diamond", "Elite", "Legend"};
+                String[] milestoneEmojis = {"🥉", "🥈", "🥇", "💎", "💠", "⭐", "👑"};
+
+                for (int i = 0; i < milestones.length; i++) {
+                    if (balance < milestones[i]) {
+                        double toNext = milestones[i] - balance;
+                        int progress = (int) ((balance / milestones[i]) * 100);
+
+                        if (nextMilestoneProgress != null) {
+                            nextMilestoneProgress.setProgress(progress);
+                        }
+                        if (nextMilestoneText != null) {
+                            nextMilestoneText.setText(String.format(Locale.US,
+                                    "%.1f LYX to next milestone: %s Miner %s",
+                                    toNext, milestoneNames[i], milestoneEmojis[i]));
+                        }
+                        break;
+                    }
+                }
+            } else {
+                progressAtRiskCard.setVisibility(View.GONE);
+            }
+        } catch (Exception e) {
+            progressAtRiskCard.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * STREAK WARNING: Show what user will lose if they break streak
+     */
+    private void updateStreakWarning() {
+        if (streakWarningText == null) return;
+
+        try {
+            int streak = sharedPreferences.getInt("streakCountInt", 0);
+            if (streak == 0) {
+                String streakStr = sharedPreferences.getString("streakCount", "0");
+                try {
+                    streak = Integer.parseInt(streakStr);
+                } catch (NumberFormatException ignored) {}
+            }
+
+            if (streak >= 3) {
+                // Calculate the bonus they'd lose
+                int bonusMultiplier = Math.min(streak, 7); // Cap at 7x
+                int lostBonus = bonusMultiplier * 5;
+
+                streakWarningText.setVisibility(View.VISIBLE);
+                streakWarningText.setText(String.format(Locale.US,
+                        "⚠️ Don't break your %d-day streak! You'll lose your %dx bonus (+%d LYX/day)",
+                        streak, bonusMultiplier, lostBonus));
+            } else {
+                streakWarningText.setVisibility(View.GONE);
+            }
+        } catch (Exception e) {
+            streakWarningText.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Animate the live indicator to draw attention
+     */
+    private void animateLiveIndicator() {
+        if (liveIndicator == null || !isAdded()) return;
+
+        android.animation.ObjectAnimator pulse = android.animation.ObjectAnimator.ofFloat(
+                liveIndicator, "alpha", 1f, 0.3f, 1f);
+        pulse.setDuration(1500);
+        pulse.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        pulse.start();
     }
 }

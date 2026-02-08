@@ -242,14 +242,16 @@ public class SignupActivity extends AppCompatActivity {
                                 referrerRef.child("bonusPoints").setValue(ServerValue.increment(5));
                                 referralApplied = true;
                                 ToastUtils.showInfo(SignupActivity.this, "Referral code applied successfully!");
-                                usersRef.child(referrerUserId).child("totalCoins").setValue(50);
+                                // FIXED: Use 'totalcoins' (lowercase) to match rest of app
+                                usersRef.child(referrerUserId).child("totalcoins").setValue(ServerValue.increment(50));
 
                             }
                         } else {
                             Toast.makeText(SignupActivity.this, "Invalid referral code, but account created successfully", Toast.LENGTH_SHORT).show();
                         }
                         if (referralApplied) {
-                            usersRef.child(userId).child("totalCoins").setValue(50);
+                            // FIXED: Use 'totalcoins' (lowercase) to match rest of app
+                            usersRef.child(userId).child("totalcoins").setValue(ServerValue.increment(50));
                             ToastUtils.showInfo(SignupActivity.this, "Referral code applied! 50 coins added.");
                         } else {
                             ToastUtils.showInfo(SignupActivity.this, "Invalid referral code, but account created successfully");

@@ -25,6 +25,18 @@
             android:name=".BoostActivity"
             android:exported="false" />
         <activity
+            android:name=".DailyGamesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Patra" />
+        <activity
+            android:name=".LoginCalendarActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Patra" />
+        <activity
+            android:name=".TrustDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Patra" />
+        <activity
             android:name=".activity_notification_settings"
             android:exported="false" />
         <activity

@@ -1,305 +1,363 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
-    android:backgroundTint="@color/backgroundColor"
-    android:background="#1c2336"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="network.lynx.app.LoginActivity">
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:background="#1c2336"
-        android:layout_height="match_parent"
-        tools:context="network.lynx.app.MainActivity">
+    android:background="@color/backgroundColor"
+    android:fillViewport="true"
+    tools:context="network.lynx.app.SignupActivity">
 
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#1c2336"
-            android:alpha="0.7" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
+        <!-- Top Section with Welcome -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="#1c2336"
-            android:layout_above="@id/card_view"
-            android:padding="28dp">
+            android:paddingHorizontal="@dimen/spacing_xxl"
+            android:paddingTop="@dimen/spacing_xxxl"
+            android:paddingBottom="@dimen/spacing_xl">
 
-<!--            <ImageView-->
-<!--                android:layout_width="100dp"-->
-<!--                android:layout_height="100dp"-->
-<!--                android:src="@drawable/logo"-->
-<!--                android:contentDescription="App Logo" />-->
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/logo"
+                android:contentDescription="App Logo" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Join Our Network"
-                android:textColor="#FFFFFF"
-                android:textSize="24sp"
+                android:textColor="@color/textPrimary"
+                android:textSize="@dimen/text_headline"
                 android:textStyle="bold"
-                android:layout_marginTop="16dp"/>
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginTop="@dimen/spacing_lg"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create account to start mining"
+                android:textColor="@color/textSecondary"
+                android:textSize="@dimen/text_body_small"
+                android:layout_marginTop="@dimen/spacing_xs"/>
+
         </LinearLayout>
 
-        <androidx.cardview.widget.CardView
+        <!-- Form Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="8dp"
-            android:layout_marginHorizontal="5dp"
-            android:layout_marginBottom="24dp"
-            android:id="@+id/card_view">
+            app:cardBackgroundColor="@color/cardBackground"
+            app:cardCornerRadius="@dimen/corner_radius_xxl"
+            app:cardElevation="@dimen/elevation_high"
+            app:strokeWidth="0dp"
+            android:layout_marginHorizontal="@dimen/spacing_sm"
+            android:layout_marginBottom="@dimen/spacing_lg">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="28dp"
-                android:background="@color/white"
-                android:backgroundTint="@color/white">
+                android:padding="@dimen/spacing_xxl">
+
+                <!-- Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Account"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_title"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Welcome"
-                    android:textColor="@color/cardBackground"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
+                    android:text="Fill in your details below"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_body_small"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:layout_marginBottom="@dimen/spacing_xl"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Please Register with your information"
-                    android:textColor="@color/black"
-                    android:alpha="0.6"
-                    android:layout_marginBottom="20dp" />
-
+                <!-- Username Field -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Username"
-                    android:textColor="@color/black"
-                    android:alpha="0.6"
-                    android:textStyle="bold" />
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxStrokeColor="@color/cardBackground"
-                    app:hintEnabled="false"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginBottom="@dimen/spacing_md"
+                    app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/cardBackgroundElevated"
+                    app:boxStrokeColor="@color/borderColor"
+                    app:boxStrokeWidth="1dp"
+                    app:boxCornerRadiusTopStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusTopEnd="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomEnd="@dimen/corner_radius_md"
+                    app:hintEnabled="false">
 
-                    <EditText
+                    <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/username"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="@dimen/button_height_lg"
                         android:inputType="textPersonName"
-                        android:padding="12dp"
-                        android:textColor="@color/black"
-                        android:background="@android:color/transparent"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body"
                         android:hint="Choose a username"
-                        android:textColorHint="#CCCCCC" />
+                        android:textColorHint="@color/textTertiary"
+                        android:paddingHorizontal="@dimen/spacing_lg"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Email Field -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Email Address"
-                    android:textColor="@color/black"
-                    android:alpha="0.6"
-                    android:textStyle="bold" />
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxStrokeColor="@color/cardBackground"
-                    app:hintEnabled="false"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginBottom="@dimen/spacing_md"
+                    app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/cardBackgroundElevated"
+                    app:boxStrokeColor="@color/borderColor"
+                    app:boxStrokeWidth="1dp"
+                    app:boxCornerRadiusTopStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusTopEnd="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomEnd="@dimen/corner_radius_md"
+                    app:hintEnabled="false">
 
-                    <EditText
+                    <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/email"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="@dimen/button_height_lg"
                         android:inputType="textEmailAddress"
-                        android:padding="12dp"
-                        android:textColor="@color/black"
-                        android:background="@android:color/transparent"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body"
                         android:hint="Enter your email"
-                        android:textColorHint="#CCCCCC" />
+                        android:textColorHint="@color/textTertiary"
+                        android:paddingHorizontal="@dimen/spacing_lg"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Password Field -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Password"
-                    android:textColor="@color/black"
-                    android:alpha="0.6"
-                    android:textStyle="bold" />
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxStrokeColor="@color/cardBackground"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginBottom="@dimen/spacing_md"
+                    app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/cardBackgroundElevated"
+                    app:boxStrokeColor="@color/borderColor"
+                    app:boxStrokeWidth="1dp"
+                    app:boxCornerRadiusTopStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusTopEnd="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomEnd="@dimen/corner_radius_md"
                     app:hintEnabled="false"
                     app:passwordToggleEnabled="true"
-                    android:layout_marginBottom="16dp">
+                    app:passwordToggleTint="@color/textTertiary">
 
-                    <EditText
+                    <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/password"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="@dimen/button_height_lg"
                         android:inputType="textPassword"
-                        android:padding="12dp"
-                        android:textColor="@color/black"
-                        android:background="@android:color/transparent"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body"
                         android:hint="Create a password"
-                        android:textColorHint="#CCCCCC" />
+                        android:textColorHint="@color/textTertiary"
+                        android:paddingHorizontal="@dimen/spacing_lg"/>
                 </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Referral Code Field -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Referral code"
-                    android:textColor="@color/black"
-                    android:alpha="0.6"
-                    android:textStyle="bold" />
+                    android:text="Referral Code (Optional)"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"/>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxStrokeColor="@color/cardBackground"
-                    app:hintEnabled="false"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginBottom="@dimen/spacing_lg"
+                    app:boxBackgroundMode="outline"
+                    app:boxBackgroundColor="@color/cardBackgroundElevated"
+                    app:boxStrokeColor="@color/borderColor"
+                    app:boxStrokeWidth="1dp"
+                    app:boxCornerRadiusTopStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusTopEnd="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomStart="@dimen/corner_radius_md"
+                    app:boxCornerRadiusBottomEnd="@dimen/corner_radius_md"
+                    app:hintEnabled="false">
 
-                    <EditText
+                    <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/referral"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textPersonName"
-                        android:padding="12dp"
-                        android:textColor="@color/black"
-                        android:background="@android:color/transparent"
-                        android:hint="Enter referral code (optional)"
-                        android:textColorHint="#CCCCCC" />
+                        android:layout_height="@dimen/button_height_lg"
+                        android:inputType="text"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="@dimen/text_body"
+                        android:hint="Enter referral code"
+                        android:textColorHint="@color/textTertiary"
+                        android:paddingHorizontal="@dimen/spacing_lg"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Terms Checkbox -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="20dp">
+                    android:layout_marginBottom="@dimen/spacing_xl">
 
-                    <CheckBox
+                    <com.google.android.material.checkbox.MaterialCheckBox
                         android:id="@+id/termsCheckBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:buttonTint="@color/cardBackground"/>
+                        app:buttonTint="@color/colorPrimary"/>
 
                     <TextView
                         android:id="@+id/termsTextView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="I agree to the Terms and Conditions"
-                        android:textColor="@color/card1"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="@dimen/text_caption"
                         android:clickable="true"
-                        android:focusable="true"
-                        android:paddingStart="5dp"/>
+                        android:focusable="true"/>
                 </LinearLayout>
 
-                <com.google.android.material.card.MaterialCardView
+                <!-- Signup Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/signupBtn"
                     android:layout_width="match_parent"
-                    android:layout_marginBottom="16dp"
-                    android:backgroundTint="@color/cardBackground"
-                    android:layout_height="60dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    android:background="@color/cardBackground"
-                    app:strokeWidth="0dp"
-                    android:id="@+id/signupBtn">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:text="CREATE ACCOUNT"
-                        android:backgroundTint="@color/cardBackground"
-                        android:textColor="#fff"
-                        android:background="@color/cardBackground"
-                        android:textStyle="bold"
-                        android:textSize="16sp"
-                        android:layout_gravity="center"
-                        android:layout_height="wrap_content"/>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/googleSignUpBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:backgroundTint="@color/cardBackground"
-                    android:textColor="@color/white"
+                    android:layout_height="@dimen/button_height_lg"
+                    android:text="Create Account"
+                    android:textSize="@dimen/text_body"
                     android:textStyle="bold"
-                    app:strokeWidth="0dp"
-                    app:cardElevation="4dp"
-                    app:cardCornerRadius="16dp"
-                    android:layout_marginBottom="20dp">
+                    android:textAllCaps="false"
+                    android:fontFamily="sans-serif-medium"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:backgroundTint="@color/colorPrimary"
+                    app:cornerRadius="@dimen/corner_radius_lg"
+                    app:rippleColor="@color/rippleLight"
+                    app:elevation="0dp"/>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:gravity="center">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/search"
-                            android:layout_marginEnd="12dp"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:textStyle="bold"
-                            android:textColor="@color/white"
-                            android:textSize="16sp"
-                            android:text="Sign Up with Google"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
+                <!-- Divider -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
                     android:orientation="horizontal"
-                    android:gravity="center">
+                    android:gravity="center_vertical"
+                    android:layout_marginVertical="@dimen/spacing_xl">
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/borderColor"/>
 
                     <TextView
-                        android:textStyle="bold"
-                        android:textColor="@color/card1"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Already have an account? " />
+                        android:text="or"
+                        android:textColor="@color/textTertiary"
+                        android:textSize="@dimen/text_caption"
+                        android:paddingHorizontal="@dimen/spacing_lg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:background="@color/borderColor"/>
+                </LinearLayout>
+
+                <!-- Google Sign Up -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/googleSignUpBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height_lg"
+                    android:textSize="@dimen/text_body"
+                    android:textStyle="bold"
+                    android:textColor="@color/textPrimary"
+                    android:textAllCaps="false"
+                    android:fontFamily="sans-serif-medium"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:backgroundTint="@color/cardBackgroundElevated"
+                    app:cornerRadius="@dimen/corner_radius_lg"
+                    app:strokeColor="@color/borderColor"
+                    app:strokeWidth="1dp"
+                    app:icon="@drawable/search"
+                    app:iconGravity="textStart"
+                    app:iconPadding="@dimen/spacing_md"
+                    app:iconSize="@dimen/icon_md"
+                    android:text="Continue with Google"/>
+
+                <!-- Login Link -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="@dimen/spacing_xl">
 
                     <TextView
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/cardBackground"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Already have an account? "
+                        android:textColor="@color/textSecondary"
+                        android:textSize="@dimen/text_body_small"/>
+
+                    <TextView
                         android:id="@+id/loginid"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Login" />
+                        android:text="Login"
+                        android:textColor="@color/colorPrimary"
+                        android:textSize="@dimen/text_body_small"
+                        android:textStyle="bold"
+                        android:padding="@dimen/spacing_xs"/>
                 </LinearLayout>
+
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
-    </RelativeLayout>
-    </ScrollView>
-</androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>

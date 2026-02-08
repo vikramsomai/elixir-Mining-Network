@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/soft_card_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:layout_marginBottom="@dimen/spacing_sm"
+    android:padding="@dimen/spacing_md">
+
+    <TextView
+        android:id="@+id/txIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/soft_card_background"
+        android:gravity="center"
+        android:text="💰"
+        android:textSize="18sp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Mining reward"
+            android:textColor="@color/textPrimary"
+            android:textSize="@dimen/text_body_small" />
+
+        <TextView
+            android:id="@+id/txTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dec 28, 14:30"
+            android:textColor="@color/textTertiary"
+            android:textSize="@dimen/text_caption" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+5.00 LYX"
+        android:textColor="@color/accentGreen"
+        android:textSize="@dimen/text_body_small"
+        android:textStyle="bold" />
+</LinearLayout>
+

@@ -43,7 +43,7 @@ public class LoginActivity extends AppCompatActivity {
     TextView login;
     EditText emailBox, password;
     FirebaseAuth mAuth;
-    MaterialCardView loginBtn, googleSignInBtn;
+    View loginBtn, googleSignInBtn; // Changed from MaterialCardView to View for flexibility
     GoogleSignInClient googleSignInClient;
     DatabaseReference databaseReference;
     FirebaseDatabase database;
@@ -66,6 +66,7 @@ public class LoginActivity extends AppCompatActivity {
         if (userId != null) {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
+            return; // Added return to prevent further execution
         }
 
         // Init views
@@ -269,6 +270,11 @@ public class LoginActivity extends AppCompatActivity {
 
         // Save to ReferralUtils for centralized access (email, name, referral code)
         ReferralUtils.saveProfileToPrefs(this, newUserId, user.getDisplayName(), user.getEmail(), referralCode);
+
+        // SENIOR DEV: Use SessionManager for centralized session management
+        SessionManager sessionManager = SessionManager.getInstance(this);
+        sessionManager.createSession(newUserId, user.getEmail(), user.getDisplayName(), referralCode);
+
         Log.d(TAG, "Saved user profile to local prefs: " + newUserId + ", email: " + user.getEmail() + ", referralCode: " + referralCode);
 
         // Ensure user has a referral code in Firebase (for existing users who don't have one)

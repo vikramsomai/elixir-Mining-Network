@@ -1,10 +1,12 @@
 package network.lynx.app;
 
+import android.animation.ObjectAnimator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -14,12 +16,19 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
- * Rewards Hub Activity
+ * Rewards Hub Activity - ENHANCED VERSION
  * Central place for all reward features:
+ * - Daily Check-in Calendar (NEW)
+ * - Daily Challenges (NEW)
+ * - Spin Wheel (NEW)
+ * - Multiplier Rush Events (NEW)
+ * - Mystery Box (NEW)
  * - Hourly Bonus
  * - Daily Lucky Number
  * - Scratch Cards
@@ -31,6 +40,41 @@ public class RewardsHubActivity extends AppCompatActivity {
 
     // Views
     private ImageView backButton;
+
+    // NEW: Daily Check-in
+    private CardView checkInCard;
+    private LinearLayout checkInDaysLayout;
+    private TextView checkInStreakText;
+    private TextView checkInRewardText;
+    private Button checkInButton;
+    private Button weeklyBonusButton;
+
+    // NEW: Daily Challenges
+    private CardView dailyChallengesCard;
+    private LinearLayout challengesLayout;
+    private TextView challengesProgress;
+    private ProgressBar challengesProgressBar;
+
+    // NEW: Spin Wheel - Simplified, now redirects to spinActivity
+    private CardView spinWheelCard;
+    private TextView spinsRemaining;
+    private Button spinButton;
+
+    // NEW: Multiplier Rush
+    private CardView multiplierRushCard;
+    private TextView rushEventName;
+    private TextView rushMultiplier;
+    private TextView rushTimeRemaining;
+    private View rushActiveIndicator;
+
+    // NEW: Mystery Box
+    private CardView mysteryBoxCard;
+    private Button bronzeBoxBtn;
+    private Button silverBoxBtn;
+    private Button goldBoxBtn;
+    private TextView bronzeCount;
+    private TextView silverCount;
+    private TextView goldCount;
 
     // Hourly Bonus
     private CardView hourlyBonusCard;
@@ -69,11 +113,12 @@ public class RewardsHubActivity extends AppCompatActivity {
 
     // Managers
     private HourlyBonusManager hourlyBonusManager;
-    private DailyLuckyNumberManager luckyNumberManager;
+    // DailyLuckyNumberManager removed - handled by DailyGamesActivity
     private ScratchCardManager scratchCardManager;
     private MiningStreakManager miningStreakManager;
     private AchievementManager achievementManager;
     private AdManager adManager;
+    private DailyEventsManager dailyEventsManager; // NEW
 
     // Timer
     private Handler timerHandler = new Handler(Looper.getMainLooper());
@@ -94,11 +139,12 @@ public class RewardsHubActivity extends AppCompatActivity {
     private void initializeManagers() {
         try {
             hourlyBonusManager = HourlyBonusManager.getInstance(this);
-            luckyNumberManager = DailyLuckyNumberManager.getInstance(this);
+            // DailyLuckyNumberManager removed - handled by DailyGamesActivity
             scratchCardManager = ScratchCardManager.getInstance(this);
             miningStreakManager = MiningStreakManager.getInstance(this);
             achievementManager = AchievementManager.getInstance(this);
             adManager = AdManager.getInstance();
+            dailyEventsManager = DailyEventsManager.getInstance(this); // NEW
         } catch (Exception e) {
             Log.e(TAG, "Error initializing managers", e);
         }
@@ -106,6 +152,41 @@ public class RewardsHubActivity extends AppCompatActivity {
 
     private void initializeViews() {
         backButton = findViewById(R.id.backNav);
+
+        // NEW: Daily Check-in
+        checkInCard = findViewById(R.id.checkInCard);
+        checkInDaysLayout = findViewById(R.id.checkInDaysLayout);
+        checkInStreakText = findViewById(R.id.checkInStreakText);
+        checkInRewardText = findViewById(R.id.checkInRewardText);
+        checkInButton = findViewById(R.id.checkInButton);
+        weeklyBonusButton = findViewById(R.id.weeklyBonusButton);
+
+        // NEW: Daily Challenges
+        dailyChallengesCard = findViewById(R.id.dailyChallengesCard);
+        challengesLayout = findViewById(R.id.challengesLayout);
+        challengesProgress = findViewById(R.id.challengesProgress);
+        challengesProgressBar = findViewById(R.id.challengesProgressBar);
+
+        // NEW: Spin Wheel - Simplified, now redirects to spinActivity
+        spinWheelCard = findViewById(R.id.spinWheelCard);
+        spinsRemaining = findViewById(R.id.spinsRemaining);
+        spinButton = findViewById(R.id.spinButton);
+
+        // NEW: Multiplier Rush
+        multiplierRushCard = findViewById(R.id.multiplierRushCard);
+        rushEventName = findViewById(R.id.rushEventName);
+        rushMultiplier = findViewById(R.id.rushMultiplier);
+        rushTimeRemaining = findViewById(R.id.rushTimeRemaining);
+        rushActiveIndicator = findViewById(R.id.rushActiveIndicator);
+
+        // NEW: Mystery Box
+        mysteryBoxCard = findViewById(R.id.mysteryBoxCard);
+        bronzeBoxBtn = findViewById(R.id.bronzeBoxBtn);
+        silverBoxBtn = findViewById(R.id.silverBoxBtn);
+        goldBoxBtn = findViewById(R.id.goldBoxBtn);
+        bronzeCount = findViewById(R.id.bronzeCount);
+        silverCount = findViewById(R.id.silverCount);
+        goldCount = findViewById(R.id.goldCount);
 
         // Hourly Bonus
         hourlyBonusCard = findViewById(R.id.hourlyBonusCard);
@@ -146,11 +227,50 @@ public class RewardsHubActivity extends AppCompatActivity {
     private void setupClickListeners() {
         backButton.setOnClickListener(v -> finish());
 
+        // NEW: Daily Check-in
+        if (checkInButton != null) {
+            checkInButton.setOnClickListener(v -> performCheckIn());
+        }
+        if (weeklyBonusButton != null) {
+            weeklyBonusButton.setOnClickListener(v -> claimWeeklyBonus());
+        }
+
+        // NEW: Spin Wheel - Navigate to dedicated activity instead of duplicating
+        if (spinButton != null) {
+            spinButton.setOnClickListener(v -> {
+                startActivity(new android.content.Intent(this, spinActivity.class));
+            });
+        }
+        // Also make the whole card clickable
+        if (spinWheelCard != null) {
+            spinWheelCard.setOnClickListener(v -> {
+                startActivity(new android.content.Intent(this, spinActivity.class));
+            });
+        }
+
+        // NEW: Mystery Box
+        if (bronzeBoxBtn != null) {
+            bronzeBoxBtn.setOnClickListener(v -> showMysteryBoxAdConsent(DailyEventsManager.MysteryBoxTier.BRONZE));
+        }
+        if (silverBoxBtn != null) {
+            silverBoxBtn.setOnClickListener(v -> showMysteryBoxAdConsent(DailyEventsManager.MysteryBoxTier.SILVER));
+        }
+        if (goldBoxBtn != null) {
+            goldBoxBtn.setOnClickListener(v -> showMysteryBoxAdConsent(DailyEventsManager.MysteryBoxTier.GOLD));
+        }
+
         // Hourly Bonus
         claimHourlyBonusBtn.setOnClickListener(v -> claimHourlyBonus());
 
-        // Lucky Number
-        playLuckyNumberBtn.setOnClickListener(v -> showLuckyNumberPicker());
+        // Lucky Number - Navigate to Daily Games instead of duplicating
+        playLuckyNumberBtn.setOnClickListener(v -> {
+            startActivity(new android.content.Intent(this, DailyGamesActivity.class));
+        });
+        if (luckyNumberCard != null) {
+            luckyNumberCard.setOnClickListener(v -> {
+                startActivity(new android.content.Intent(this, DailyGamesActivity.class));
+            });
+        }
 
         // Scratch Card
         earnScratchCardBtn.setOnClickListener(v -> earnScratchCard());
@@ -161,11 +281,348 @@ public class RewardsHubActivity extends AppCompatActivity {
     }
 
     private void loadAllData() {
+        updateCheckInUI();           // NEW
+        updateDailyChallengesUI();   // NEW
+        updateSpinWheelUI();         // NEW
+        updateMultiplierRushUI();    // NEW
+        updateMysteryBoxUI();        // NEW
         updateHourlyBonusUI();
         updateLuckyNumberUI();
         updateScratchCardUI();
         updateMiningStreakUI();
         updateAchievementsUI();
+    }
+
+    // ===================== NEW: DAILY CHECK-IN =====================
+
+    private void updateCheckInUI() {
+        if (dailyEventsManager == null) return;
+
+        DailyEventsManager.CheckInStatus status = dailyEventsManager.getCheckInStatus();
+
+        if (checkInStreakText != null) {
+            checkInStreakText.setText(String.format(Locale.US, "%d Day Streak", status.currentStreak));
+        }
+
+        if (checkInRewardText != null) {
+            checkInRewardText.setText(String.format(Locale.US, "Today: +%.1f LYX", status.todayReward));
+        }
+
+        if (checkInButton != null) {
+            if (status.checkedInToday) {
+                checkInButton.setEnabled(false);
+                checkInButton.setText("Checked In!");
+            } else {
+                checkInButton.setEnabled(true);
+                checkInButton.setText("Check In Now");
+            }
+        }
+
+        if (weeklyBonusButton != null) {
+            if (status.canClaimWeeklyBonus) {
+                weeklyBonusButton.setVisibility(View.VISIBLE);
+                weeklyBonusButton.setEnabled(true);
+                weeklyBonusButton.setText(String.format(Locale.US, "Claim +%.0f LYX Weekly Bonus!", status.weeklyBonusReward));
+            } else {
+                weeklyBonusButton.setVisibility(View.GONE);
+            }
+        }
+
+        // Update check-in calendar
+        if (checkInDaysLayout != null) {
+            checkInDaysLayout.removeAllViews();
+            String[] dayNames = {"S", "M", "T", "W", "T", "F", "S"};
+            for (int i = 0; i < 7; i++) {
+                TextView dayView = new TextView(this);
+                dayView.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                dayView.setGravity(android.view.Gravity.CENTER);
+                dayView.setPadding(8, 8, 8, 8);
+
+                if (status.weeklyCheckIns[i] == 1) {
+                    dayView.setText("✓");
+                    dayView.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
+                } else if (status.weeklyCheckIns[i] == 2) {
+                    dayView.setText(dayNames[i]);
+                    dayView.setTextColor(ContextCompat.getColor(this, R.color.gold));
+                } else {
+                    dayView.setText(dayNames[i]);
+                    dayView.setTextColor(ContextCompat.getColor(this, R.color.textSecondary));
+                }
+                checkInDaysLayout.addView(dayView);
+            }
+        }
+    }
+
+    private void performCheckIn() {
+        if (dailyEventsManager == null) return;
+
+        if (checkInButton != null) {
+            checkInButton.setEnabled(false);
+            checkInButton.setText("Checking in...");
+        }
+
+        dailyEventsManager.performCheckIn(new DailyEventsManager.CheckInCallback() {
+            @Override
+            public void onCheckInSuccess(double reward, int newStreak) {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this,
+                            String.format(Locale.US, "Check-in complete! +%.1f LYX (Day %d)", reward, newStreak));
+                    updateCheckInUI();
+                    updateDailyChallengesUI();
+                });
+            }
+
+            @Override
+            public void onAlreadyCheckedIn() {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this, "Already checked in today!");
+                    updateCheckInUI();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    ToastUtils.showError(RewardsHubActivity.this, message);
+                    updateCheckInUI();
+                });
+            }
+        });
+    }
+
+    private void claimWeeklyBonus() {
+        if (dailyEventsManager == null) return;
+
+        dailyEventsManager.claimWeeklyBonus(new DailyEventsManager.CheckInCallback() {
+            @Override
+            public void onCheckInSuccess(double reward, int newStreak) {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this,
+                            String.format(Locale.US, "Weekly bonus claimed! +%.0f LYX", reward));
+                    updateCheckInUI();
+                });
+            }
+
+            @Override
+            public void onAlreadyCheckedIn() {
+                runOnUiThread(() -> updateCheckInUI());
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    ToastUtils.showError(RewardsHubActivity.this, message);
+                    updateCheckInUI();
+                });
+            }
+        });
+    }
+
+    // ===================== NEW: DAILY CHALLENGES =====================
+
+    private void updateDailyChallengesUI() {
+        if (dailyEventsManager == null) return;
+
+        List<DailyEventsManager.DailyChallenge> challenges = dailyEventsManager.getDailyChallenges();
+        int completed = dailyEventsManager.getCompletedChallengesCount();
+
+        if (challengesProgress != null) {
+            challengesProgress.setText(String.format(Locale.US, "%d/3 Completed", completed));
+        }
+
+        if (challengesProgressBar != null) {
+            challengesProgressBar.setProgress((completed * 100) / 3);
+        }
+
+        if (challengesLayout != null) {
+            challengesLayout.removeAllViews();
+            for (DailyEventsManager.DailyChallenge challenge : challenges) {
+                View challengeView = getLayoutInflater().inflate(android.R.layout.simple_list_item_2, challengesLayout, false);
+
+                TextView title = challengeView.findViewById(android.R.id.text1);
+                TextView subtitle = challengeView.findViewById(android.R.id.text2);
+
+                String status = challenge.claimed ? "✓ Claimed" : (challenge.completed ? "✓ Complete" : challenge.getProgressText());
+                title.setText(String.format("%s %s - %s", challenge.type.icon, challenge.type.title, status));
+                subtitle.setText(String.format(Locale.US, "%s | Reward: %.1f LYX", challenge.type.description, challenge.reward));
+
+                if (challenge.completed && !challenge.claimed) {
+                    challengeView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimaryLight));
+                    challengeView.setOnClickListener(v -> claimChallengeReward(challenge));
+                }
+
+                challengesLayout.addView(challengeView);
+            }
+        }
+    }
+
+    private void claimChallengeReward(DailyEventsManager.DailyChallenge challenge) {
+        dailyEventsManager.claimChallengeReward(challenge, new DailyEventsManager.ChallengeClaimCallback() {
+            @Override
+            public void onClaimed(double reward) {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this,
+                            String.format(Locale.US, "Challenge complete! +%.1f LYX", reward));
+                    updateDailyChallengesUI();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> ToastUtils.showError(RewardsHubActivity.this, message));
+            }
+        });
+    }
+
+    // ===================== NEW: SPIN WHEEL =====================
+
+    private void updateSpinWheelUI() {
+        // Simplified - just show navigation prompt since spin is handled in dedicated spinActivity
+        if (spinsRemaining != null) {
+            spinsRemaining.setText("Tap to open Spin Wheel");
+        }
+
+        if (spinButton != null) {
+            spinButton.setEnabled(true);
+            spinButton.setText("🎰 Go to Spin Wheel →");
+        }
+    }
+
+    // Spin wheel methods removed - now handled by spinActivity
+
+    // ===================== NEW: MULTIPLIER RUSH =====================
+
+    private void updateMultiplierRushUI() {
+        if (dailyEventsManager == null) return;
+
+        DailyEventsManager.MultiplierRushStatus status = dailyEventsManager.getMultiplierRushStatus();
+
+        if (rushEventName != null) {
+            rushEventName.setText(status.eventName);
+        }
+
+        if (rushMultiplier != null) {
+            rushMultiplier.setText(String.format(Locale.US, "%.1fx", status.multiplier));
+        }
+
+        if (rushTimeRemaining != null) {
+            if (status.isActive) {
+                rushTimeRemaining.setText("Ends in: " + status.getTimeRemainingFormatted());
+            } else {
+                rushTimeRemaining.setText("Next: " + status.getTimeRemainingFormatted());
+            }
+        }
+
+        if (rushActiveIndicator != null) {
+            rushActiveIndicator.setBackgroundColor(status.isActive ?
+                    ContextCompat.getColor(this, R.color.colorPrimary) :
+                    ContextCompat.getColor(this, R.color.textSecondary));
+        }
+
+        if (multiplierRushCard != null) {
+            multiplierRushCard.setCardBackgroundColor(status.isActive ?
+                    ContextCompat.getColor(this, R.color.colorPrimaryLight) :
+                    ContextCompat.getColor(this, R.color.cardBackground));
+        }
+    }
+
+    // ===================== NEW: MYSTERY BOX =====================
+
+    private void updateMysteryBoxUI() {
+        if (dailyEventsManager == null) return;
+
+        // Bronze
+        int bronzeRemaining = dailyEventsManager.getMysteryBoxesRemaining(DailyEventsManager.MysteryBoxTier.BRONZE);
+        if (bronzeCount != null) bronzeCount.setText(String.valueOf(bronzeRemaining));
+        if (bronzeBoxBtn != null) bronzeBoxBtn.setEnabled(bronzeRemaining > 0);
+
+        // Silver
+        int silverRemaining = dailyEventsManager.getMysteryBoxesRemaining(DailyEventsManager.MysteryBoxTier.SILVER);
+        if (silverCount != null) silverCount.setText(String.valueOf(silverRemaining));
+        if (silverBoxBtn != null) silverBoxBtn.setEnabled(silverRemaining > 0);
+
+        // Gold
+        int goldRemaining = dailyEventsManager.getMysteryBoxesRemaining(DailyEventsManager.MysteryBoxTier.GOLD);
+        if (goldCount != null) goldCount.setText(String.valueOf(goldRemaining));
+        if (goldBoxBtn != null) goldBoxBtn.setEnabled(goldRemaining > 0);
+    }
+
+    private void showMysteryBoxAdConsent(DailyEventsManager.MysteryBoxTier tier) {
+        AdConsentManager.showCheckInConsentDialog(this, new AdConsentManager.ConsentCallback() {
+            @Override
+            public void onConsentGiven() {
+                showAdForMysteryBox(tier);
+            }
+
+            @Override
+            public void onConsentDenied() {
+                ToastUtils.showInfo(RewardsHubActivity.this, "Watch an ad to open the mystery box!");
+            }
+        });
+    }
+
+    private void showAdForMysteryBox(DailyEventsManager.MysteryBoxTier tier) {
+        adManager.showRewardedAd(this, AdManager.AD_UNIT_BOOST, new AdManager.AdShowCallback() {
+            @Override
+            public void onAdShowed() {}
+
+            @Override
+            public void onAdShowFailed(String error) {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this, "Ad failed. Try again.");
+                    updateMysteryBoxUI();
+                });
+            }
+
+            @Override
+            public void onAdDismissed() {
+                runOnUiThread(() -> updateMysteryBoxUI());
+            }
+
+            @Override
+            public void onAdNotAvailable() {
+                runOnUiThread(() -> {
+                    ToastUtils.showInfo(RewardsHubActivity.this, "No ads available. Try later.");
+                    updateMysteryBoxUI();
+                });
+            }
+
+            @Override
+            public void onUserEarnedReward(com.google.android.gms.ads.rewarded.RewardItem rewardItem) {
+                openMysteryBox(tier);
+            }
+        });
+    }
+
+    private void openMysteryBox(DailyEventsManager.MysteryBoxTier tier) {
+        if (dailyEventsManager == null) return;
+
+        dailyEventsManager.openMysteryBox(tier, new DailyEventsManager.MysteryBoxCallback() {
+            @Override
+            public void onBoxOpened(DailyEventsManager.MysteryBoxResult result) {
+                runOnUiThread(() -> {
+                    showMysteryBoxResult(result);
+                    updateMysteryBoxUI();
+                    updateDailyChallengesUI();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    ToastUtils.showError(RewardsHubActivity.this, message);
+                    updateMysteryBoxUI();
+                });
+            }
+        });
+    }
+
+    private void showMysteryBoxResult(DailyEventsManager.MysteryBoxResult result) {
+        new AlertDialog.Builder(this)
+                .setTitle(result.tier.icon + " " + result.tier.name + " Opened!")
+                .setMessage(result.message)
+                .setPositiveButton("Awesome!", null)
+                .show();
     }
 
     // ===================== HOURLY BONUS =====================
@@ -222,91 +679,22 @@ public class RewardsHubActivity extends AppCompatActivity {
     // ===================== LUCKY NUMBER =====================
 
     private void updateLuckyNumberUI() {
-        if (luckyNumberManager == null) return;
+        // Simplified - redirect to DailyGamesActivity for better experience
+        if (luckyNumberStatus != null) {
+            luckyNumberStatus.setText("Daily prediction game, coin flip & more!");
+        }
 
-        DailyLuckyNumberManager.GameStatus status = luckyNumberManager.getGameStatus();
-
-        if (status.hasPlayedToday) {
-            playLuckyNumberBtn.setEnabled(false);
-            playLuckyNumberBtn.setText("Come back tomorrow!");
-
-            if (status.lastResult != null) {
-                String resultText = "You guessed " + status.lastGuess +
-                        " | Lucky number: " + status.lastLuckyNumber;
-                luckyNumberResult.setText(resultText);
-                luckyNumberResult.setVisibility(View.VISIBLE);
-            }
-
-            if (status.hasActiveBoost) {
-                long hours = status.boostTimeRemaining / (60 * 60 * 1000);
-                luckyNumberStatus.setText(String.format(Locale.getDefault(),
-                        "%.1fx boost active (%dh left)", status.activeMultiplier, hours));
-            } else {
-                luckyNumberStatus.setText("Already played today");
-            }
-        } else {
+        if (playLuckyNumberBtn != null) {
             playLuckyNumberBtn.setEnabled(true);
-            playLuckyNumberBtn.setText("Pick Your Lucky Number!");
-            luckyNumberStatus.setText("Guess 1-10 for a chance to win!");
+            playLuckyNumberBtn.setText("🎮 Play Mini Games →");
+        }
+
+        if (luckyNumberResult != null) {
             luckyNumberResult.setVisibility(View.GONE);
         }
     }
 
-    private void showLuckyNumberPicker() {
-        String[] numbers = new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
-
-        new AlertDialog.Builder(this)
-                .setTitle("🎲 Pick Your Lucky Number!")
-                .setItems(numbers, (dialog, which) -> {
-                    int selectedNumber = which + 1;
-                    playLuckyNumber(selectedNumber);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void playLuckyNumber(int guess) {
-        if (luckyNumberManager == null) return;
-
-        playLuckyNumberBtn.setEnabled(false);
-        playLuckyNumberBtn.setText("Revealing...");
-
-        luckyNumberManager.playGame(guess, new DailyLuckyNumberManager.GameCallback() {
-            @Override
-            public void onGameComplete(DailyLuckyNumberManager.LuckyNumberResult result) {
-                runOnUiThread(() -> {
-                    showLuckyNumberResult(result);
-                    updateLuckyNumberUI();
-                });
-            }
-
-            @Override
-            public void onAlreadyPlayed(int lastGuess, int lastLuckyNumber,
-                                        DailyLuckyNumberManager.GuessResult lastResult) {
-                runOnUiThread(() -> {
-                    ToastUtils.showInfo(RewardsHubActivity.this, "Already played today!");
-                    updateLuckyNumberUI();
-                });
-            }
-
-            @Override
-            public void onGameError(String error) {
-                runOnUiThread(() -> {
-                    ToastUtils.showInfo(RewardsHubActivity.this, error);
-                    updateLuckyNumberUI();
-                });
-            }
-        });
-    }
-
-    private void showLuckyNumberResult(DailyLuckyNumberManager.LuckyNumberResult result) {
-        new AlertDialog.Builder(this)
-                .setTitle(result.result == DailyLuckyNumberManager.GuessResult.EXACT_MATCH ?
-                        "🎉 JACKPOT!" : "🎲 Result")
-                .setMessage(result.message + "\n\nTokens won: " + result.tokensWon + " LYX")
-                .setPositiveButton("Awesome!", null)
-                .show();
-    }
+    // Lucky Number methods removed - now handled by DailyGamesActivity
 
     // ===================== SCRATCH CARD =====================
 

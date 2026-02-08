@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background track -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/cardBackgroundElevated" />
+            <corners android:radius="@dimen/corner_radius_sm" />
+        </shape>
+    </item>
+
+    <!-- Secondary progress (optional) -->
+    <item android:id="@android:id/secondaryProgress">
+        <clip>
+            <shape android:shape="rectangle">
+                <solid android:color="@color/borderColor" />
+                <corners android:radius="@dimen/corner_radius_sm" />
+            </shape>
+        </clip>
+    </item>
+
+    <!-- Primary progress with gradient -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <gradient
+                    android:startColor="@color/colorPrimary"
+                    android:endColor="@color/gold"
+                    android:angle="0" />
+                <corners android:radius="@dimen/corner_radius_sm" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>
+

@@ -3,21 +3,16 @@ package network.lynx.app;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MenuItem;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-
-
-//import com.google.ads.mediation.inmobi.InMobiConsent;
 import com.google.ads.mediation.inmobi.InMobiConsent;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
@@ -30,14 +25,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.inmobi.sdk.InMobiSdk;
-//import com.inmobi.sdk.InMobiSdk;
-//import com.inmobi.sdk.SdkInitializationListener;
-//import com.inmobi.unification.sdk.InitializationStatus;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
@@ -77,13 +69,13 @@ public class MainActivity extends AppCompatActivity {
         try {
             consentObject.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, true);
             consentObject.put("gdpr", "1");
-        } catch (JSONException exception) {
-            exception.printStackTrace();
+        } catch (JSONException e) {
+            Log.e(TAG, "Error creating consent object", e);
         }
         InMobiSdk.setLogLevel(InMobiSdk.LogLevel.DEBUG);
         RequestConfiguration configuration =
                 new RequestConfiguration.Builder()
-                        .setTestDeviceIds(Arrays.asList("YOUR_DEVICE_ID"))
+                        .setTestDeviceIds(Collections.singletonList("YOUR_DEVICE_ID"))
                         .build();
         MobileAds.setRequestConfiguration(configuration);
 
@@ -183,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupNavigation() {
-        bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
+        bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             try {
                 if (itemId == R.id.navHome) {
@@ -200,15 +192,40 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         });
+
+        // Setup back press handling using modern API
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (bottomNavigationView != null && bottomNavigationView.getSelectedItemId() != R.id.navHome) {
+                    // If not on home, go to home first
+                    bottomNavigationView.setSelectedItemId(R.id.navHome);
+                } else {
+                    // Exit the app
+                    finish();
+                }
+            }
+        });
     }
 
     public void loadFragment(Fragment fragment) {
         try {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            if (isFinishing() || isDestroyed()) {
+                Log.w(TAG, "Activity is finishing, cannot load fragment");
+                return;
+            }
 
-            fragmentTransaction.replace(R.id.framelayout, fragment);
-            fragmentTransaction.commit();
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            if (fragmentManager.isStateSaved()) {
+                Log.w(TAG, "State already saved, using commitAllowingStateLoss");
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                fragmentTransaction.replace(R.id.framelayout, fragment);
+                fragmentTransaction.commitAllowingStateLoss();
+            } else {
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                fragmentTransaction.replace(R.id.framelayout, fragment);
+                fragmentTransaction.commit();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error in loadFragment: " + e.getMessage());
         }
@@ -222,39 +239,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        finishAffinity(); // optional, ensures all activities closed
-        System.exit(0);
-    }
 
     private void checkForNotifications() {
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
+        try {
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                Log.w(TAG, "No user logged in, skipping notification check");
+                return;
+            }
 
-        userRef.child("notifications").orderByChild("read").equalTo(false)
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (snapshot.exists()) {
-                            int unreadCount = (int) snapshot.getChildrenCount();
-                            userRef.child("unreadNotifications").setValue(unreadCount);
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
 
-                            for (DataSnapshot notificationSnapshot : snapshot.getChildren()) {
-                                String type = notificationSnapshot.child("type").getValue(String.class);
-                                String message = notificationSnapshot.child("message").getValue(String.class);
-                                if ("referral_ping".equals(type) && message != null) {
-                                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+            userRef.child("notifications").orderByChild("read").equalTo(false)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            if (snapshot.exists()) {
+                                int unreadCount = (int) snapshot.getChildrenCount();
+                                userRef.child("unreadNotifications").setValue(unreadCount);
+
+                                for (DataSnapshot notificationSnapshot : snapshot.getChildren()) {
+                                    String type = notificationSnapshot.child("type").getValue(String.class);
+                                    String message = notificationSnapshot.child("message").getValue(String.class);
+                                    if ("referral_ping".equals(type) && message != null) {
+                                        if (!isFinishing() && !isDestroyed()) {
+                                            ToastUtils.showInfo(MainActivity.this, message);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        Log.e(TAG, "Failed to check notifications", error.toException());
-                    }
-                });
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            Log.e(TAG, "Failed to check notifications", error.toException());
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking notifications", e);
+        }
     }
 }

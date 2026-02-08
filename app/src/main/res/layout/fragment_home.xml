@@ -12,42 +12,42 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="24dp">
+        android:paddingHorizontal="@dimen/screen_padding_horizontal"
+        android:paddingTop="@dimen/spacing_lg"
+        android:paddingBottom="@dimen/spacing_xxl">
 
         <!-- Profile Section -->
         <LinearLayout
             android:id="@+id/profileCard"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/spacing_xl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="4dp">
+            android:padding="@dimen/spacing_xs">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="24dp"
+                app:cardCornerRadius="@dimen/corner_radius_xxl"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="@color/cardBackground">
 
                 <FrameLayout
-                    android:layout_width="48dp"
-                    android:layout_height="48dp">
+                    android:layout_width="@dimen/profile_image_md"
+                    android:layout_height="@dimen/profile_image_md">
 
                     <com.lelloman.identicon.view.ClassicIdenticonView
                         android:id="@+id/profileCircleImageView"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="@dimen/profile_image_md"
+                        android:layout_height="@dimen/profile_image_md"
                         android:background="@color/cardBackground"
                         app:hash="125634585" />
 
                     <ImageView
                         android:id="@+id/profilePic"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="@dimen/profile_image_md"
+                        android:layout_height="@dimen/profile_image_md"
                         android:scaleType="centerCrop"
                         android:visibility="gone"
                         android:contentDescription="Profile"/>
@@ -59,7 +59,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="12dp">
+                android:layout_marginStart="@dimen/spacing_md">
 
                 <TextView
                     android:id="@+id/usernameTextView"
@@ -67,7 +67,7 @@
                     android:layout_height="wrap_content"
                     android:text="User"
                     android:textColor="@color/textPrimary"
-                    android:textSize="17sp"
+                    android:textSize="@dimen/text_subtitle"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif-medium"
                     android:maxLines="1"
@@ -77,7 +77,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="@dimen/spacing_xxs"
                     android:gravity="center_vertical">
 
                     <TextView
@@ -86,13 +86,13 @@
                         android:layout_height="wrap_content"
                         android:text="0x0000...0000"
                         android:textColor="@color/textTertiary"
-                        android:textSize="12sp"/>
+                        android:textSize="@dimen/text_caption"/>
 
                     <ImageView
                         android:id="@+id/copyAddress"
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_marginStart="6dp"
+                        android:layout_width="@dimen/icon_xs"
+                        android:layout_height="@dimen/icon_xs"
+                        android:layout_marginStart="@dimen/spacing_xs"
                         android:src="@drawable/copy"
                         app:tint="@color/textTertiary"
                         android:contentDescription="Copy"/>
@@ -104,13 +104,13 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="Quick Actions"
-            android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:layout_marginTop="@dimen/spacing_xxl"
+            android:layout_marginBottom="@dimen/spacing_md"
+            android:text="QUICK ACTIONS"
+            android:textColor="@color/textTertiary"
+            android:textSize="@dimen/text_overline"
             android:textStyle="bold"
-            android:letterSpacing="0.05"
+            android:letterSpacing="0.1"
             android:fontFamily="sans-serif-medium"/>
 
         <GridView
@@ -177,6 +177,17 @@
                     android:fontFamily="sans-serif-medium"/>
             </LinearLayout>
 
+            <!-- FOMO: Streak Warning - What you'll lose -->
+            <TextView
+                android:id="@+id/streakWarningText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="⚠️ Don't break your streak! You'll lose your 5x bonus"
+                android:textColor="@color/warning"
+                android:textSize="11sp"
+                android:visibility="gone"/>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/claimButton"
                 android:layout_width="match_parent"
@@ -195,6 +206,218 @@
                 app:rippleColor="@color/rippleLight"
                 app:strokeWidth="0dp"
                 app:elevation="0dp"/>
+        </LinearLayout>
+
+        <!-- FOMO: Global Mining Activity - Social Proof -->
+        <LinearLayout
+            android:id="@+id/globalMiningCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:orientation="vertical"
+            android:background="@drawable/soft_card_background"
+            android:padding="@dimen/spacing_md">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <View
+                    android:id="@+id/liveIndicator"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/circle_green"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:text="LIVE"
+                    android:textColor="@color/accentGreen"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"/>
+
+                <TextView
+                    android:id="@+id/globalMinersCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12,847 miners online"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌍"
+                    android:textSize="16sp"/>
+
+                <TextView
+                    android:id="@+id/globalTokensMined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:text="2,456,789 LYX mined today globally"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_caption"/>
+
+                <TextView
+                    android:id="@+id/yourRankText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/badge_background_gold"
+                    android:paddingHorizontal="@dimen/spacing_sm"
+                    android:paddingVertical="2dp"
+                    android:text="Top 15%"
+                    android:textColor="@color/cardBackground"
+                    android:textSize="10sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- FOMO: Limited Time Bonus - Urgency -->
+        <LinearLayout
+            android:id="@+id/limitedBonusCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/gradient_gold_card"
+            android:padding="@dimen/spacing_md"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⏰"
+                android:textSize="20sp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="@dimen/spacing_sm">
+
+                <TextView
+                    android:id="@+id/limitedBonusTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2X BONUS ACTIVE!"
+                    android:textColor="@color/cardBackground"
+                    android:textSize="@dimen/text_body_small"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/limitedBonusTimer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ends in 2h 34m - Don't miss out!"
+                    android:textColor="@color/cardBackground"
+                    android:alpha="0.8"
+                    android:textSize="11sp"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/claimBonusBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/soft_card_background"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingVertical="@dimen/spacing_sm"
+                android:text="CLAIM"
+                android:textColor="@color/gold"
+                android:textSize="11sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- FOMO: Your Progress At Risk - Loss Aversion -->
+        <LinearLayout
+            android:id="@+id/progressAtRiskCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:orientation="vertical"
+            android:background="@drawable/soft_card_background"
+            android:padding="@dimen/spacing_md"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔒"
+                    android:textSize="18sp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:text="Your Progress"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_body_small"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/totalValueAtRisk"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="452.5 LYX"
+                    android:textColor="@color/accentGreen"
+                    android:textSize="@dimen/text_body_small"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/progressWarningText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="⚡ Mining daily protects your earnings. Inactive accounts lose priority."
+                android:textColor="@color/textSecondary"
+                android:textSize="11sp"/>
+
+            <ProgressBar
+                android:id="@+id/nextMilestoneProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:max="100"
+                android:progress="67"
+                android:progressDrawable="@drawable/progress_gradient"/>
+
+            <TextView
+                android:id="@+id/nextMilestoneText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="47.5 LYX to next milestone: Silver Miner 🥈"
+                android:textColor="@color/textTertiary"
+                android:textSize="10sp"/>
         </LinearLayout>
 
         <!-- Spin Wheel -->
@@ -240,6 +463,118 @@
                     android:textColor="@color/textSecondary"
                     android:textSize="12sp"
                     android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/arrow"
+                app:tint="@color/textTertiary"
+                android:contentDescription="Go"/>
+        </LinearLayout>
+
+        <!-- Daily Games Card - NEW ENGAGEMENT FEATURE -->
+        <LinearLayout
+            android:id="@+id/dailyGamesCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/soft_card_background"
+            android:padding="@dimen/spacing_lg"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:text="🎮"
+                android:textSize="22sp"
+                android:gravity="center"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="@dimen/spacing_md">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Daily Mini Games"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_body_small"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Predict &amp; Win up to 25 LYX!"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:layout_marginTop="@dimen/spacing_xxs"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/badge_background_gold"
+                android:paddingHorizontal="@dimen/spacing_sm"
+                android:paddingVertical="@dimen/spacing_xs"
+                android:text="NEW"
+                android:textColor="@color/cardBackground"
+                android:textSize="@dimen/text_overline"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- Trust Dashboard Card - Build User Trust -->
+        <LinearLayout
+            android:id="@+id/trustDashboardCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/soft_card_background"
+            android:padding="@dimen/spacing_lg"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:text="📊"
+                android:textSize="22sp"
+                android:gravity="center"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="@dimen/spacing_md">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Trust Dashboard"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="@dimen/text_body_small"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stats, History &amp; Withdrawal Info"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="@dimen/text_caption"
+                    android:layout_marginTop="@dimen/spacing_xxs"/>
             </LinearLayout>
 
             <ImageView

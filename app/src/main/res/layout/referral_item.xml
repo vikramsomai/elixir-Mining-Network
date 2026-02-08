@@ -4,24 +4,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
-    app:cardCornerRadius="16dp"
-    app:cardBackgroundColor="#2A3048"
-    app:cardElevation="4dp"
+    android:layout_marginBottom="@dimen/spacing_md"
+    app:cardCornerRadius="@dimen/corner_radius_lg"
+    app:cardBackgroundColor="@color/cardBackground"
+    app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="@dimen/spacing_lg">
 
         <!-- User Avatar with Gradient Border -->
         <androidx.cardview.widget.CardView
             android:id="@+id/avatarContainer"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="4dp"
+            android:layout_width="@dimen/profile_image_md"
+            android:layout_height="@dimen/profile_image_md"
+            app:cardCornerRadius="@dimen/corner_radius_pill"
+            app:cardElevation="0dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -40,8 +40,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginStart="@dimen/spacing_lg"
+            android:layout_marginEnd="@dimen/spacing_lg"
             app:layout_constraintStart_toEndOf="@id/avatarContainer"
             app:layout_constraintEnd_toStartOf="@id/statusContainer"
             app:layout_constraintTop_toTopOf="@id/avatarContainer">
@@ -51,8 +51,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="John Doe"
-                android:textColor="@color/white"
-                android:textSize="18sp"
+                android:textColor="@color/textPrimary"
+                android:textSize="@dimen/text_body"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"/>
 
@@ -61,9 +61,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Joined Apr 15, 2025"
-                android:textColor="#CCFFFFFF"
-                android:textSize="14sp"
-                android:layout_marginTop="4dp"/>
+                android:textColor="@color/textSecondary"
+                android:textSize="@dimen/text_caption"
+                android:layout_marginTop="@dimen/spacing_xxs"/>
         </LinearLayout>
 
         <!-- Status and Earnings -->

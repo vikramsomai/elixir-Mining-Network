@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/screen_padding_horizontal">
 
         <!-- Top App Bar -->
         <LinearLayout
@@ -21,83 +21,93 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingVertical="8dp">
+            android:paddingVertical="@dimen/spacing_sm">
 
             <ImageView
                 android:id="@+id/backButton"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="@dimen/icon_xl"
+                android:layout_height="@dimen/icon_xl"
                 android:src="@drawable/baseline_arrow_back_ios_new_24"
                 app:tint="@color/textPrimary"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
+                android:background="@drawable/soft_card_background"
+                android:padding="@dimen/spacing_sm"
                 android:contentDescription="Back"/>
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/spacing_md"
                 android:text="Boost Center"
                 android:textColor="@color/textPrimary"
-                android:textSize="20sp"
+                android:textSize="@dimen/text_title"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"/>
         </LinearLayout>
 
         <!-- Current Mining Speed Card -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="vertical"
-            android:background="@drawable/soft_card_background"
-            android:padding="20dp">
+            android:layout_marginTop="@dimen/spacing_lg"
+            app:cardBackgroundColor="@color/cardBackground"
+            app:cardCornerRadius="@dimen/corner_radius_lg"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Current Mining Speed"
-                android:textColor="@color/textSecondary"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-medium"/>
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_xl">
 
-            <TextView
-                android:id="@+id/farmingSpeed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0.0 / hours"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:textColor="@color/textPrimary"
-                android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif-medium"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CURRENT MINING SPEED"
+                    android:textColor="@color/textTertiary"
+                    android:textSize="@dimen/text_overline"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:fontFamily="sans-serif-medium"/>
 
-            <TextView
-                android:id="@+id/boostStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="x2 Boost Active"
-                android:textColor="@color/accentGreen"
-                android:textStyle="bold"
-                android:textSize="13sp"
-                android:layout_marginTop="8dp"
-                android:fontFamily="sans-serif-medium"/>
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/farmingSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.0 / hour"
+                    android:textSize="@dimen/text_display"
+                    android:textStyle="bold"
+                    android:textColor="@color/textPrimary"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:fontFamily="sans-serif-light"/>
+
+                <TextView
+                    android:id="@+id/boostStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="×2 Boost Active"
+                    android:textColor="@color/accentGreen"
+                    android:textStyle="bold"
+                    android:textSize="@dimen/text_body_small"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:fontFamily="sans-serif-medium"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Boost Tasks Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="Available Boosts"
-            android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:layout_marginTop="@dimen/spacing_xxl"
+            android:layout_marginBottom="@dimen/spacing_md"
+            android:text="AVAILABLE BOOSTS"
+            android:textColor="@color/textTertiary"
+            android:textSize="@dimen/text_overline"
             android:textStyle="bold"
-            android:letterSpacing="0.05"
+            android:letterSpacing="0.1"
             android:fontFamily="sans-serif-medium"/>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -112,13 +122,13 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="Active Boosts"
-            android:textColor="@color/textSecondary"
-            android:textSize="13sp"
+            android:layout_marginTop="@dimen/spacing_xxl"
+            android:layout_marginBottom="@dimen/spacing_md"
+            android:text="ACTIVE BOOSTS"
+            android:textColor="@color/textTertiary"
+            android:textSize="@dimen/text_overline"
             android:textStyle="bold"
-            android:letterSpacing="0.05"
+            android:letterSpacing="0.1"
             android:fontFamily="sans-serif-medium"/>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -131,7 +141,7 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="24dp"/>
+            android:layout_height="@dimen/spacing_xxl"/>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
 

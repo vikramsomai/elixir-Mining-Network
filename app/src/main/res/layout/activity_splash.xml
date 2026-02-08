@@ -1,35 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:backgroundTint="@color/backgroundColor"
-    android:orientation="vertical"
-    android:background="@color/white">
+    android:background="@color/backgroundColor">
 
-    <ImageView
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/logo"
-        android:contentDescription="App Logo"/>
+    <!-- Centered Logo and Brand -->
+    <LinearLayout
+        android:id="@+id/brandContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <!-- Logo with glow effect background -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <!-- Glow background -->
+            <View
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_gravity="center"
+                android:background="@drawable/soft_icon_background"
+                android:alpha="0.3"/>
+
+            <ImageView
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/logo"
+                android:contentDescription="App Logo"/>
+        </FrameLayout>
+
+        <!-- Brand Name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xxl"
+            android:text="Lynx Network"
+            android:textSize="@dimen/text_headline"
+            android:textStyle="bold"
+            android:textColor="@color/textPrimary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.02"/>
+
+        <!-- Tagline -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="Mine. Earn. Grow."
+            android:textSize="@dimen/text_body_small"
+            android:textColor="@color/textSecondary"
+            android:letterSpacing="0.1"/>
+
+    </LinearLayout>
+
+    <!-- Loading Section at Bottom -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="@dimen/spacing_xxxl"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ProgressBar
+            android:id="@+id/loadingProgress"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:indeterminateTint="@color/colorPrimary"
+            style="?android:attr/progressBarStyleSmall"/>
+
+        <TextView
+            android:id="@+id/noInternetText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:text="No internet connection"
+            android:textSize="@dimen/text_body_small"
+            android:textColor="@color/error"
+            android:visibility="gone"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/retryButton"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/button_height_md"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="Retry"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_body_small"
+            android:fontFamily="sans-serif-medium"
+            android:paddingHorizontal="@dimen/spacing_xxl"
+            android:visibility="gone"
+            app:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="@dimen/corner_radius_md"/>
+    </LinearLayout>
+
+    <!-- Version at very bottom -->
     <TextView
-        android:id="@+id/noInternetText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No internet connection"
-        android:textSize="18sp"
-        android:textColor="@android:color/holo_red_dark"
-        android:visibility="gone"/>
+        android:layout_marginBottom="@dimen/spacing_lg"
+        android:text="v1.0.0"
+        android:textSize="@dimen/text_caption"
+        android:textColor="@color/textTertiary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <Button
-        android:id="@+id/retryButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Retry"
-        android:visibility="gone"
-        android:backgroundTint="@color/gold_gradient_start"
-        android:textColor="@android:color/white"/>
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
+
